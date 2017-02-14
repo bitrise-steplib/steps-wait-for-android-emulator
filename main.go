@@ -1,13 +1,13 @@
 package main
 
 import (
+	"errors"
 	"os"
+	"strconv"
 
 	"fmt"
 
 	"time"
-
-	"strconv"
 
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-steplib/steps-start-android-emulator/tools"
@@ -15,8 +15,8 @@ import (
 
 // ConfigsModel ...
 type ConfigsModel struct {
-	emulatorSerial string
-	bootTimeout    int64
+	EmulatorSerial string
+	BootTimeout    string
 	AndroidHome    string
 }
 
@@ -25,25 +25,32 @@ type ConfigsModel struct {
 // -----------------------
 
 func createConfigsModelFromEnvs() ConfigsModel {
-
-	timeout := int64(180)
-
-	if inputTimeout, err := strconv.ParseInt(os.Getenv("boot_timeout"), 10, 64); err == nil {
-		timeout = inputTimeout
-	}
-
 	return ConfigsModel{
-		emulatorSerial: os.Getenv("emulator_serial"),
-		bootTimeout:    timeout,
+		EmulatorSerial: os.Getenv("emulator_serial"),
+		BootTimeout:    os.Getenv("boot_timeout"),
 		AndroidHome:    os.Getenv("android_home"),
 	}
+}
+
+func (configs ConfigsModel) validate() error {
+	if configs.EmulatorSerial == "" {
+		return errors.New("no EmulatorSerial parameter specified")
+	}
+	if configs.AndroidHome == "" {
+		return errors.New("no AndroidHome parameter specified")
+	}
+	if configs.BootTimeout == "" {
+		return errors.New("no BootTimeout parameter specified")
+	}
+
+	return nil
 }
 
 func (configs ConfigsModel) print() {
 	log.Infof("Configs:")
 
-	log.Printf("- emulatorSerial: %s", configs.emulatorSerial)
-	log.Printf("- bootTimeout: %d", configs.bootTimeout)
+	log.Printf("- emulatorSerial: %s", configs.EmulatorSerial)
+	log.Printf("- bootTimeout: %s", configs.BootTimeout)
 	log.Printf("- AndroidHome: %s", configs.AndroidHome)
 }
 
@@ -57,15 +64,16 @@ func failf(format string, v ...interface{}) {
 // -----------------------
 
 func main() {
-
-	fmt.Println()
-
 	config := createConfigsModelFromEnvs()
 
+	fmt.Println()
 	config.print()
 
-	fmt.Println()
+	if err := config.validate(); err != nil {
+		failf("Issue with input: %s", err)
+	}
 
+	fmt.Println()
 	log.Infof("Waiting for emulator boot")
 
 	adb, err := tools.NewADB(config.AndroidHome)
@@ -73,25 +81,31 @@ func main() {
 		failf("Failed to create adb model, error: %s", err)
 	}
 
+	timeout, err := strconv.ParseInt(config.BootTimeout, 10, 64)
+	if err != nil {
+		failf("Failed to parse BootTimeout parameter, error: %s", err)
+	}
+
 	emulatorBootDone := false
 	elapsedTime := int64(0)
 
 	for !emulatorBootDone {
-		if emulatorBootDone, err = adb.IsDeviceBooted(config.emulatorSerial); err != nil {
+		if emulatorBootDone, err = adb.IsDeviceBooted(config.EmulatorSerial); err != nil {
 			failf("Failed to check emulator boot status, error: %s", err)
+		} else if emulatorBootDone {
+			break
 		}
 
-		if !emulatorBootDone {
-			log.Printf("> Checking if device booted...")
-			time.Sleep(5 * time.Second)
-			elapsedTime += 5
+		if elapsedTime >= timeout {
+			failf("Waiting for emulator boot timed out after %d seconds", config.BootTimeout)
 		}
-		if elapsedTime >= config.bootTimeout {
-			failf("Waiting for emulator boot timed out after %d seconds", config.bootTimeout)
-		}
+
+		log.Printf("> Checking if device booted...")
+		time.Sleep(5 * time.Second)
+		elapsedTime += 5
 	}
 
-	if err := adb.UnlockDevice(config.emulatorSerial); err != nil {
+	if err := adb.UnlockDevice(config.EmulatorSerial); err != nil {
 		failf("UnlockDevice command failed, error: %s", err)
 	}
 
