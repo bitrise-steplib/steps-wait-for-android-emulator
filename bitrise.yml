@@ -10,11 +10,13 @@ workflows:
     before_run:
     - go-tests
     steps:
+    - create-android-emulator:
+        inputs:
+        - name: android-24-armeabi-v7a
     - start-android-emulator:
         title: Run AVD
         inputs:
           - wait_for_boot: "false"
-          - emulator_name: "Nexus_5X_API_22"
     - path::./:
         title: Wait for the emulator to boot
         is_always_run: false
