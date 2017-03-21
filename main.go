@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/bitrise-io/go-utils/log"
-	"github.com/bitrise-steplib/steps-start-android-emulator/tools"
+	"github.com/bitrise-tools/go-android/adbmanager"
 )
 
 // ConfigsModel ...
@@ -76,7 +76,7 @@ func main() {
 	fmt.Println()
 	log.Infof("Waiting for emulator boot")
 
-	adb, err := tools.NewADB(config.AndroidHome)
+	adb, err := adbmanager.New(config.AndroidHome)
 	if err != nil {
 		failf("Failed to create adb model, error: %s", err)
 	}
