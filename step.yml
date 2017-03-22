@@ -7,6 +7,13 @@ description: |-
 website: https://github.com/bitrise-steplib/steps-wait-for-android-emulator
 source_code_url: https://github.com/bitrise-steplib/steps-wait-for-android-emulator
 support_url: https://github.com/bitrise-steplib/steps-wait-for-android-emulator/issues
+host_os_tags:
+  - ubuntu
+type_tags:
+  - utility
+is_requires_admin_user: false
+is_always_run: false
+is_skippable: false
 toolkit:
   go:
     package_name: github.com/bitrise-steplib/steps-wait-for-android-emulator
@@ -16,15 +23,6 @@ deps:
   apt_get:
   - name: golang
     bin_name: go
-host_os_tags:
-  - ubuntu
-project_type_tags:
-  - android
-type_tags:
-  - emulator
-is_requires_admin_user: false
-is_always_run: false
-is_skippable: false
 inputs:
   - emulator_serial: $BITRISE_EMULATOR_SERIAL
     opts:
