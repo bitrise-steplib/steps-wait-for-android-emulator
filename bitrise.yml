@@ -3,7 +3,7 @@ default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 
 app:
   envs:
-  - STEP_VERSION: 0.9.0
+  - STEP_VERSION: 1.0.0
 
   - BITRISE_EMULATOR_NAME: android-22-armeabi-v7a
   - EMULATOR_PLATFORM: android-22
@@ -111,6 +111,20 @@ workflows:
 
             go get -t -d ./...
             godep save ./...
+
+  # ----------------------------------------------------------------
+  # --- workflows to create Release
+  create-release:
+    steps:
+    - script:
+        title:
+        inputs:
+        - content: |
+            #!/bin/bash
+            set -e
+
+            export CI=true
+            releaseman create --version $STEP_VERSION
 
   # ----------------------------------------------------------------
   # --- workflows to Share this step into a Step Library
