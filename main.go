@@ -11,6 +11,7 @@ import (
 
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-tools/go-android/adbmanager"
+	"github.com/bitrise-tools/go-android/sdk"
 )
 
 // ConfigsModel ...
@@ -76,7 +77,12 @@ func main() {
 	fmt.Println()
 	log.Infof("Waiting for emulator boot")
 
-	adb, err := adbmanager.New(config.AndroidHome)
+	sdk, err := sdk.New(config.AndroidHome)
+	if err != nil {
+		failf("Failed to create sdk, error: %s", err)
+	}
+
+	adb, err := adbmanager.New(sdk)
 	if err != nil {
 		failf("Failed to create adb model, error: %s", err)
 	}
