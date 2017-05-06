@@ -31,7 +31,7 @@ inputs:
       description: |
         Emulator with the given serial will be checked if booted, or wait for it to boot.
       is_required: true
-  - boot_timeout: "180"
+  - boot_timeout: "300"
     opts:
       title: "Waiting timeout (secs)"
       summary: Maximum time to wait for emulator to boot
