@@ -1,6 +1,11 @@
-## Changelog (Current version: 1.0.1)
+## Changelog (Current version: 1.0.2)
 
 -----------------
+
+### 1.0.2 (2017 May 08)
+
+* [a9e29f7] Prepare for 1.0.2
+* [81bf532] Fix for timeout being prolonged (#6)
 
 ### 1.0.1 (2017 Mar 28)
 
@@ -17,4 +22,4 @@
 
 -----------------
 
-Updated: 2017 Mar 28
+Updated: 2017 May 08
