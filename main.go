@@ -93,22 +93,21 @@ func main() {
 	}
 
 	emulatorBootDone := false
-	elapsedTime := int64(0)
+	startTime := time.Now()
 
 	for !emulatorBootDone {
+		log.Printf("> Checking if device booted...")
 		if emulatorBootDone, err = adb.IsDeviceBooted(config.EmulatorSerial); err != nil {
 			failf("Failed to check emulator boot status, error: %s", err)
 		} else if emulatorBootDone {
 			break
 		}
 
-		if elapsedTime >= timeout {
-			failf("Waiting for emulator boot timed out after %d seconds", config.BootTimeout)
+		if time.Now().Sub(startTime) >= time.Duration(timeout)*time.Second {
+			failf("Waiting for emulator boot timed out after %d seconds", timeout)
 		}
 
-		log.Printf("> Checking if device booted...")
 		time.Sleep(5 * time.Second)
-		elapsedTime += 5
 	}
 
 	if err := adb.UnlockDevice(config.EmulatorSerial); err != nil {
