@@ -30,7 +30,9 @@ inputs:
       summary: Emulator serial to check
       description: |
         Emulator with the given serial will be checked if booted, or wait for it to boot.
-      is_required: true
+
+        If no emulator serial given, will check the only running emulator. Make sure only one device is connected in this case, otherwise the step will timeout.
+      is_required: false
   - boot_timeout: "300"
     opts:
       title: "Waiting timeout (secs)"

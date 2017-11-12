@@ -3,15 +3,15 @@ package main
 import (
 	"errors"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"fmt"
 
 	"time"
 
+	"github.com/bitrise-io/go-utils/command"
 	"github.com/bitrise-io/go-utils/log"
-	"github.com/bitrise-tools/go-android/adbmanager"
-	"github.com/bitrise-tools/go-android/sdk"
 )
 
 // ConfigsModel ...
@@ -20,10 +20,6 @@ type ConfigsModel struct {
 	BootTimeout    string
 	AndroidHome    string
 }
-
-// -----------------------
-// --- Functions
-// -----------------------
 
 func createConfigsModelFromEnvs() ConfigsModel {
 	return ConfigsModel{
@@ -34,9 +30,6 @@ func createConfigsModelFromEnvs() ConfigsModel {
 }
 
 func (configs ConfigsModel) validate() error {
-	if configs.EmulatorSerial == "" {
-		return errors.New("no EmulatorSerial parameter specified")
-	}
 	if configs.AndroidHome == "" {
 		return errors.New("no AndroidHome parameter specified")
 	}
@@ -77,16 +70,6 @@ func main() {
 	fmt.Println()
 	log.Infof("Waiting for emulator boot")
 
-	sdk, err := sdk.New(config.AndroidHome)
-	if err != nil {
-		failf("Failed to create sdk, error: %s", err)
-	}
-
-	adb, err := adbmanager.New(sdk)
-	if err != nil {
-		failf("Failed to create adb model, error: %s", err)
-	}
-
 	timeout, err := strconv.ParseInt(config.BootTimeout, 10, 64)
 	if err != nil {
 		failf("Failed to parse BootTimeout parameter, error: %s", err)
@@ -95,11 +78,26 @@ func main() {
 	emulatorBootDone := false
 	startTime := time.Now()
 
+	log.Printf("> Checking if device booted")
+
+	adbCommands := []string{}
+
+	if config.EmulatorSerial != "" {
+		adbCommands = append(adbCommands, "-s", config.EmulatorSerial)
+	}
+
+	adbCommands = append(adbCommands, "shell", "getprop dev.bootcomplete '0' && getprop sys.boot_completed '0' && getprop init.svc.bootanim 'running'")
+
 	for !emulatorBootDone {
-		log.Printf("> Checking if device booted...")
-		if emulatorBootDone, err = adb.IsDeviceBooted(config.EmulatorSerial); err != nil {
+		fmt.Print(".")
+
+		bootCheckCmd := command.New(filepath.Join(os.Getenv("ANDROID_HOME"), "platform-tools/adb"), adbCommands...)
+		bootCheckOut, err := bootCheckCmd.RunAndReturnTrimmedCombinedOutput()
+		if err != nil {
 			failf("Failed to check emulator boot status, error: %s", err)
-		} else if emulatorBootDone {
+		}
+
+		if bootCheckOut == "1\n1\nstopped" {
 			break
 		}
 
@@ -107,11 +105,7 @@ func main() {
 			failf("Waiting for emulator boot timed out after %d seconds", timeout)
 		}
 
-		time.Sleep(5 * time.Second)
-	}
-
-	if err := adb.UnlockDevice(config.EmulatorSerial); err != nil {
-		failf("UnlockDevice command failed, error: %s", err)
+		time.Sleep(3 * time.Second)
 	}
 
 	log.Donef("> Device booted")
