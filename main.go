@@ -78,8 +78,6 @@ func main() {
 	emulatorBootDone := false
 	startTime := time.Now()
 
-	log.Printf("> Checking if device booted")
-
 	adbCommands := []string{}
 
 	if config.EmulatorSerial != "" {
@@ -89,7 +87,7 @@ func main() {
 	adbCommands = append(adbCommands, "shell", "getprop dev.bootcomplete '0' && getprop sys.boot_completed '0' && getprop init.svc.bootanim 'running'")
 
 	for !emulatorBootDone {
-		fmt.Print(".")
+		log.Printf("> Checking if device booted")
 
 		bootCheckCmd := command.New(filepath.Join(os.Getenv("ANDROID_HOME"), "platform-tools/adb"), adbCommands...)
 		bootCheckOut, err := bootCheckCmd.RunAndReturnTrimmedCombinedOutput()
@@ -98,6 +96,7 @@ func main() {
 		}
 
 		if bootCheckOut == "1\n1\nstopped" {
+			time.Sleep(25 * time.Second)
 			break
 		}
 
