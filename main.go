@@ -92,7 +92,7 @@ func main() {
 		bootCheckCmd := command.New(filepath.Join(os.Getenv("ANDROID_HOME"), "platform-tools/adb"), adbCommands...)
 		bootCheckOut, err := bootCheckCmd.RunAndReturnTrimmedCombinedOutput()
 		if err != nil {
-			failf("Failed to check emulator boot status, error: %s, output: %s", err, bootCheckOut)
+			log.Warnf("Failed to check emulator boot status, error: %s, output: %s", err, bootCheckOut)
 		}
 
 		if bootCheckOut == "1\n1\nstopped" {
