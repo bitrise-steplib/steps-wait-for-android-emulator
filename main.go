@@ -133,9 +133,9 @@ func main() {
 func isDeviceBooted(androidHome, serial string) (bool, error) {
 	devBootCmd := exec.Command(filepath.Join(androidHome, "platform-tools/adb"), "-s", serial, "exec-out", "echo \"$(getprop dev.bootcomplete)-$(getprop sys.boot_completed)-$(getprop init.svc.bootanim)\"")
 
-	combinedOutputBuffer := &bytes.Buffer{}
-	devBootCmd.Stderr = combinedOutputBuffer
-	devBootCmd.Stdout = combinedOutputBuffer
+	var combinedOutputBuffer bytes.Buffer
+	devBootCmd.Stderr = &combinedOutputBuffer
+	devBootCmd.Stdout = &combinedOutputBuffer
 
 	err := devBootCmd.Start()
 	if err != nil {

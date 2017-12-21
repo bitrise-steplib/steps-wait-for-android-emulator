@@ -29,7 +29,8 @@ workflows:
             set -e
             mkdir -p platform-tools
             cat /dev/null > adb_log
-            cat >> platform-tools/adb <<EOF
+            cat /dev/null > platform-tools/adb
+            cat >> platform-tools/adb <<'EOF'
             #!/usr/bin/env bash
 
             echo "$@" >> adb_log
