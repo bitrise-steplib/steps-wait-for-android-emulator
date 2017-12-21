@@ -25,14 +25,17 @@ workflows:
         title: Create hanging adb
         inputs:
         - content: |-
-            #!/bin/bash
+            #!/usr/bin/env bash
             set -e
             mkdir -p platform-tools
-            echo -n "" > adb_log
-            echo "#!/bin/bash" > platform-tools/adb
-            echo 'echo "$@" >> adb_log' >> platform-tools/adb
-            echo 'if [ "$1" == "kill-server" ]; then exit 0; fi' >> platform-tools/adb
-            echo "sleep 120" >> platform-tools/adb
+            cat /dev/null > adb_log
+            cat >> platform-tools/adb <<EOF
+            #!/usr/bin/env bash
+
+            echo "$@" >> adb_log
+            [[ "$1" == "kill-server" ]] && exit 0
+            sleep 120
+            EOF
             chmod +x platform-tools/adb
     - path::./:
         title: Should fail with timeout - Wait for the emulator to boot
@@ -47,10 +50,11 @@ workflows:
         is_skippable: false
         inputs:
         - content: |-
-            #!/bin/bash
+            #!/usr/bin/env bash
             set -ex
-            if [ ! $(grep -c -- "kill-server" ./adb_log) == "3" ]; then exit 1; fi
-            if [ ! $(grep -c -- '-s emulator-5554 exec-out echo "$(getprop dev.bootcomplete)-$(getprop sys.boot_completed)-$(getprop init.svc.bootanim)"' ./adb_log) == "3" ]; then exit 1; fi
+            [[ $(grep -c "kill-server" ./adb_log) == "3" ]] && 
+             [[ $(grep -c -- '-s emulator-5554 exec-out echo "$(getprop dev.bootcomplete)-$(getprop sys.boot_completed)-$(getprop init.svc.bootanim)"' ./adb_log) == "3" ]] || 
+             exit 1
 
   go-tests:
     before_run:
@@ -60,7 +64,7 @@ workflows:
         title: Export go files to test
         inputs:
         - content: |-
-            #!/bin/bash
+            #!/usr/bin/env bash
             set -ex
 
             no_vendor_paths="$(go list ./... | grep -v vendor)"
@@ -69,7 +73,7 @@ workflows:
         title: Err check
         inputs:
         - content: |-
-            #!/bin/bash
+            #!/usr/bin/env bash
             set -ex
 
             errcheck -asserts=true -blank=true $GOLIST_WITHOUT_VENDOR
@@ -77,7 +81,7 @@ workflows:
         title: Go lint
         inputs:
         - content: |-
-            #!/bin/bash
+            #!/usr/bin/env bash
             set -ex
 
             while read -r line; do
@@ -93,7 +97,7 @@ workflows:
         title: Go test
         inputs:
         - content: |-
-            #!/bin/bash
+            #!/usr/bin/env bash
             set -ex
             go test ./...
 
@@ -103,7 +107,7 @@ workflows:
         title: Install required testing tools
         inputs:
         - content: |-
-            #!/bin/bash
+            #!/usr/bin/env bash
             set -ex
             
             # Check for unhandled errors
@@ -121,7 +125,7 @@ workflows:
         title: Dependency update
         inputs:
         - content: |
-            #!/bin/bash
+            #!/usr/bin/env bash
             set -ex
             go get -u -v github.com/tools/godep
 
@@ -139,7 +143,7 @@ workflows:
         title:
         inputs:
         - content: |
-            #!/bin/bash
+            #!/usr/bin/env bash
             set -e
 
             export CI=true
@@ -152,7 +156,7 @@ workflows:
     - script:
         inputs:
         - content: |-
-            #!/bin/bash
+            #!/usr/bin/env bash
             set -ex
             stepman audit --step-yml ./step.yml
 
@@ -190,7 +194,7 @@ workflows:
     - script:
         inputs:
         - content: |-
-            #!/bin/bash
+            #!/usr/bin/env bash
             set -ex
             bitrise share start -c ${MY_STEPLIB_REPO_FORK_GIT_URL}
             bitrise share create --stepid ${STEP_ID_IN_STEPLIB} --tag ${STEP_GIT_VERION_TAG_TO_SHARE} --git ${STEP_GIT_CLONE_URL}
