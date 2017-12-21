@@ -5,33 +5,52 @@ app:
   envs:
   - STEP_VERSION: 1.0.2
 
-  - BITRISE_EMULATOR_NAME: android-22-armeabi-v7a
-  - EMULATOR_PLATFORM: android-22
-  - EMULATOR_TAG: google_apis
-
 workflows:
   test:
     before_run:
     - go-tests
     steps:
-    - create-android-emulator:
-        title: Create emulator
-        # run_if: .IsCI
+    - change-workdir:
         inputs:
-        - name: $BITRISE_EMULATOR_NAME
-        - platform: $EMULATOR_PLATFORM
-        - tag: $EMULATOR_TAG
-    - start-android-emulator:
-        title: Run AVD
-        inputs:
-          - wait_for_boot: "false"
+        - path: _tmp
+    - avd-manager:
     - path::./:
         title: Wait for the emulator to boot
         is_always_run: false
     - script:
         title: Stop Android Emulator
         inputs:
-        - content: adb -s $BITRISE_EMULATOR_SERIAL emu kill
+        - content: pkill -f qemu-system-i386
+    - script:
+        title: Create hanging adb
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -e
+            mkdir -p platform-tools
+            echo -n "" > adb_log
+            echo "#!/bin/bash" > platform-tools/adb
+            echo 'echo "$@" >> adb_log' >> platform-tools/adb
+            echo 'if [ "$1" == "kill-server" ]; then exit 0; fi' >> platform-tools/adb
+            echo "sleep 120" >> platform-tools/adb
+            chmod +x platform-tools/adb
+    - path::./:
+        title: Should fail with timeout - Wait for the emulator to boot
+        is_always_run: false
+        is_skippable: true
+        inputs:
+        - boot_timeout: 60
+        - android_home: ./
+    - script:
+        title: check if commands are called
+        is_always_run: false
+        is_skippable: false
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            if [ ! $(grep -c -- "kill-server" ./adb_log) == "3" ]; then exit 1; fi
+            if [ ! $(grep -c -- '-s emulator-5554 exec-out echo "$(getprop dev.bootcomplete)-$(getprop sys.boot_completed)-$(getprop init.svc.bootanim)"' ./adb_log) == "3" ]; then exit 1; fi
 
   go-tests:
     before_run:
