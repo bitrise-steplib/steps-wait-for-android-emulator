@@ -1,18 +1,22 @@
 package main
 
 import (
+	"bytes"
 	"errors"
-	"os"
-	"strconv"
-
 	"fmt"
-
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/bitrise-io/go-utils/log"
 	"github.com/bitrise-tools/go-android/adbmanager"
 	"github.com/bitrise-tools/go-android/sdk"
 )
+
+var errTimedOut = errors.New("running command timed out")
 
 // ConfigsModel ...
 type ConfigsModel struct {
@@ -97,8 +101,17 @@ func main() {
 
 	for !emulatorBootDone {
 		log.Printf("> Checking if device booted...")
-		if emulatorBootDone, err = adb.IsDeviceBooted(config.EmulatorSerial); err != nil {
-			failf("Failed to check emulator boot status, error: %s", err)
+		if emulatorBootDone, err = isDeviceBooted(config.AndroidHome, config.EmulatorSerial); err != nil {
+			if err != errTimedOut {
+				failf("Failed to check emulator boot status, error: %s", err)
+			}
+			log.Warnf("Running command timed out, retry...")
+			if err := killADBDaemon(config.AndroidHome); err != nil {
+				if err != errTimedOut {
+					failf("unable to kill ADB daemon, error: %s", err)
+				}
+				log.Warnf("killing ADB daemon timed out")
+			}
 		} else if emulatorBootDone {
 			break
 		}
@@ -115,4 +128,48 @@ func main() {
 	}
 
 	log.Donef("> Device booted")
+}
+
+func isDeviceBooted(androidHome, serial string) (bool, error) {
+	devBootCmd := exec.Command(filepath.Join(androidHome, "platform-tools/adb"), "-s", serial, "exec-out", "echo \"$(getprop dev.bootcomplete)-$(getprop sys.boot_completed)-$(getprop init.svc.bootanim)\"")
+
+	var combinedOutputBuffer bytes.Buffer
+	devBootCmd.Stderr = &combinedOutputBuffer
+	devBootCmd.Stdout = &combinedOutputBuffer
+
+	err := devBootCmd.Start()
+	if err != nil {
+		return false, err
+	}
+
+	done := make(chan error)
+	go func() { done <- devBootCmd.Wait() }()
+	select {
+	case err := <-done:
+		if err != nil {
+			return false, err
+		}
+		output := strings.TrimSpace(combinedOutputBuffer.String())
+		return (output == "1-1-stopped"), nil
+	case <-time.After(20 * time.Second):
+		return false, errTimedOut
+	}
+}
+
+func killADBDaemon(androidHome string) error {
+	cmd := exec.Command(filepath.Join(androidHome, "platform-tools/adb"), "kill-server")
+
+	err := cmd.Start()
+	if err != nil {
+		return err
+	}
+
+	done := make(chan error)
+	go func() { done <- cmd.Wait() }()
+	select {
+	case err := <-done:
+		return err
+	case <-time.After(20 * time.Second):
+		return errTimedOut
+	}
 }
