@@ -1,6 +1,11 @@
-## Changelog (Current version: 1.0.2)
+## Changelog (Current version: 1.0.3)
 
 -----------------
+
+### 1.0.3 (2017 Dec 22)
+
+* [843034a] Prepare for 1.0.3
+* [80ec5d2] updated adb calls with timeout (#7)
 
 ### 1.0.2 (2017 May 08)
 
@@ -22,4 +27,4 @@
 
 -----------------
 
-Updated: 2017 May 08
+Updated: 2017 Dec 22
