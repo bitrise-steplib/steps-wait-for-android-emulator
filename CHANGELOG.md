@@ -1,6 +1,11 @@
-## Changelog (Current version: 1.0.3)
+## Changelog (Current version: 1.0.4)
 
 -----------------
+
+### 1.0.4 (2018 Feb 01)
+
+* [52097ff] Prepare for 1.0.4
+* [eb9cc20] updated command calls (#9)
 
 ### 1.0.3 (2017 Dec 22)
 
@@ -27,4 +32,4 @@
 
 -----------------
 
-Updated: 2017 Dec 22
+Updated: 2018 Feb 01
