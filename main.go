@@ -64,6 +64,59 @@ func failf(format string, v ...interface{}) {
 	os.Exit(1)
 }
 
+func runCommandWithTimeout(name string, args ...string) (string, error) {
+	cmd := exec.Command(name, args...)
+
+	var output bytes.Buffer
+	cmd.Stderr = &output
+	cmd.Stdout = &output
+
+	if err := cmd.Start(); err != nil {
+		return strings.TrimSpace(output.String()), err
+	}
+
+	done := make(chan error)
+
+	go func() { done <- cmd.Wait() }()
+	select {
+	case err := <-done:
+		return strings.TrimSpace(output.String()), err
+	case <-time.After(20 * time.Second):
+		return strings.TrimSpace(output.String()), errTimedOut
+	}
+}
+
+func killADBDaemon(androidHome string) error {
+	_, err := runCommandWithTimeout(filepath.Join(androidHome, "platform-tools/adb"), "kill-server")
+	return err
+}
+
+func isDeviceBooted(androidHome, serial string) (bool, error) {
+	formatErr := func(out string, err error) error {
+		if err == errTimedOut {
+			return err
+		}
+		return fmt.Errorf("%s - %s", out, err)
+	}
+
+	dev, err := runCommandWithTimeout(filepath.Join(androidHome, "platform-tools/adb"), "-s", serial, "shell", "getprop dev.bootcomplete")
+	if err != nil {
+		return false, formatErr(dev, err)
+	}
+
+	sys, err := runCommandWithTimeout(filepath.Join(androidHome, "platform-tools/adb"), "-s", serial, "shell", "getprop sys.boot_completed")
+	if err != nil {
+		return false, formatErr(sys, err)
+	}
+
+	init, err := runCommandWithTimeout(filepath.Join(androidHome, "platform-tools/adb"), "-s", serial, "shell", "getprop init.svc.bootanim")
+	if err != nil {
+		return false, formatErr(init, err)
+	}
+
+	return (dev == "1" && sys == "1" && init == "stopped"), nil
+}
+
 // -----------------------
 // --- Main
 // -----------------------
@@ -128,48 +181,4 @@ func main() {
 	}
 
 	log.Donef("> Device booted")
-}
-
-func isDeviceBooted(androidHome, serial string) (bool, error) {
-	devBootCmd := exec.Command(filepath.Join(androidHome, "platform-tools/adb"), "-s", serial, "exec-out", "echo \"$(getprop dev.bootcomplete)-$(getprop sys.boot_completed)-$(getprop init.svc.bootanim)\"")
-
-	var combinedOutputBuffer bytes.Buffer
-	devBootCmd.Stderr = &combinedOutputBuffer
-	devBootCmd.Stdout = &combinedOutputBuffer
-
-	err := devBootCmd.Start()
-	if err != nil {
-		return false, err
-	}
-
-	done := make(chan error)
-	go func() { done <- devBootCmd.Wait() }()
-	select {
-	case err := <-done:
-		if err != nil {
-			return false, err
-		}
-		output := strings.TrimSpace(combinedOutputBuffer.String())
-		return (output == "1-1-stopped"), nil
-	case <-time.After(20 * time.Second):
-		return false, errTimedOut
-	}
-}
-
-func killADBDaemon(androidHome string) error {
-	cmd := exec.Command(filepath.Join(androidHome, "platform-tools/adb"), "kill-server")
-
-	err := cmd.Start()
-	if err != nil {
-		return err
-	}
-
-	done := make(chan error)
-	go func() { done <- cmd.Wait() }()
-	select {
-	case err := <-done:
-		return err
-	case <-time.After(20 * time.Second):
-		return errTimedOut
-	}
 }
