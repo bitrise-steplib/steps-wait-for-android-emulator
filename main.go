@@ -119,7 +119,6 @@ func main() {
 			if strings.Contains(err.Error(), "daemon not running; starting now at") {
 				log.Warnf("adb daemon being restarted")
 				log.Printf(err.Error())
-				continue
 			} else if err != errTimedOut {
 				failf("Failed to check emulator boot status, error: %s", err)
 			}
