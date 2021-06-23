@@ -84,10 +84,6 @@ func isDeviceBooted(androidHome, serial string) (bool, error) {
 	return (dev == "1" && sys == "1" && init == "stopped"), nil
 }
 
-// -----------------------
-// --- Main
-// -----------------------
-
 func main() {
 	var inputs Inputs
 	if err := stepconf.Parse(&inputs); err != nil {
@@ -134,7 +130,7 @@ func main() {
 			break
 		}
 
-		if time.Now().Sub(startTime) >= time.Duration(timeout)*time.Second {
+		if time.Since(startTime) >= time.Duration(timeout)*time.Second {
 			failf("Waiting for emulator boot timed out after %d seconds", timeout)
 		}
 
