@@ -2,14 +2,11 @@ package command
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
-
-	"github.com/bitrise-io/go-utils/errorutil"
 )
 
 // ----------
@@ -32,15 +29,20 @@ func NewWithStandardOuts(name string, args ...string) *Model {
 	return New(name, args...).SetStdout(os.Stdout).SetStderr(os.Stderr)
 }
 
-// NewFromSlice ...
-func NewFromSlice(slice ...string) (*Model, error) {
-	if len(slice) == 0 {
+// NewWithParams ...
+func NewWithParams(params ...string) (*Model, error) {
+	if len(params) == 0 {
 		return nil, errors.New("no command provided")
-	} else if len(slice) == 1 {
-		return New(slice[0]), nil
+	} else if len(params) == 1 {
+		return New(params[0]), nil
 	}
 
-	return New(slice[0], slice[1:]...), nil
+	return New(params[0], params[1:]...), nil
+}
+
+// NewFromSlice ...
+func NewFromSlice(slice []string) (*Model, error) {
+	return NewWithParams(slice...)
 }
 
 // NewWithCmd ...
@@ -134,18 +136,10 @@ func PrintableCommandArgs(isQuoteFirst bool, fullCommandArgs []string) string {
 }
 
 // RunCmdAndReturnExitCode ...
-func RunCmdAndReturnExitCode(cmd *exec.Cmd) (int, error) {
-	err := cmd.Run()
-	if err != nil {
-		exitCode, castErr := errorutil.CmdExitCodeFromError(err)
-		if castErr != nil {
-			return 1, fmt.Errorf("failed get exit code from error: %s, error: %s", err, castErr)
-		}
-
-		return exitCode, err
-	}
-
-	return 0, nil
+func RunCmdAndReturnExitCode(cmd *exec.Cmd) (exitCode int, err error) {
+	err = cmd.Run()
+	exitCode = cmd.ProcessState.ExitCode()
+	return
 }
 
 // RunCmdAndReturnTrimmedOutput ...

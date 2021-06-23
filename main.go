@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bitrise-io/go-android/adbmanager"
+	"github.com/bitrise-io/go-android/sdk"
 	"github.com/bitrise-io/go-utils/log"
-	"github.com/bitrise-tools/go-android/adbmanager"
-	"github.com/bitrise-tools/go-android/sdk"
 )
 
 var errTimedOut = errors.New("running command timed out")

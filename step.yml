@@ -17,12 +17,6 @@ is_skippable: false
 toolkit:
   go:
     package_name: github.com/bitrise-steplib/steps-wait-for-android-emulator
-deps:
-  brew:
-  - name: go
-  apt_get:
-  - name: golang
-    bin_name: go
 inputs:
   - emulator_serial: $BITRISE_EMULATOR_SERIAL
     opts:

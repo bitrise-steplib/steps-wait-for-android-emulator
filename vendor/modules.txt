@@ -1,0 +1,12 @@
+# github.com/bitrise-io/go-android v0.0.0-20210527143215-3ad22ad02e2e
+## explicit
+github.com/bitrise-io/go-android/adbmanager
+github.com/bitrise-io/go-android/sdk
+# github.com/bitrise-io/go-utils v0.0.0-20210520073355-367fa34178f5
+## explicit
+github.com/bitrise-io/go-utils/colorstring
+github.com/bitrise-io/go-utils/command
+github.com/bitrise-io/go-utils/log
+github.com/bitrise-io/go-utils/pathutil
+# github.com/hashicorp/go-version v1.3.0
+github.com/hashicorp/go-version
