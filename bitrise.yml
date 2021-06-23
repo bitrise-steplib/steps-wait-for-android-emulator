@@ -104,9 +104,9 @@ workflows:
         - content: pkill -f qemu-system-i386
 
   audit-this-step:
-    title: Audit step.yml
     steps:
     - script:
+        title: Audit step.yml
         inputs:
         - content: |-
             #!/usr/bin/env bash
