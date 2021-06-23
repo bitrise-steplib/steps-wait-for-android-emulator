@@ -10,17 +10,45 @@ workflows:
     - golint:
     - errcheck:
     - go-test:
-    - change-workdir:
-        inputs:
-        - path: _tmp
+    after_run:
+    - sample
+    - hanging_adb
+    - daemon_restart
+
+  sample:
+    steps:
     - avd-manager:
+        title: Start Android Emulator
     - path::./:
-        title: Wait for the emulator to boot
+        title: Wait for the Emulator boot
         is_always_run: false
     - script:
         title: Stop Android Emulator
         inputs:
         - content: pkill -f qemu-system-i386
+
+  hanging_adb:
+    steps:
+    - script:
+        title: Start a failing workflow, wrapped in a script
+        inputs:
+        - content: |-
+            #!/bin/env bash
+            set -x # Do not set -e as bitrise command is excepted to fail
+            bitrise run utility_hanging_adb
+            if [ $? -ne 1 ] ; then
+              echo "Workflow was excepted to fail, but exit code is not 1"
+              exit 1
+            fi
+
+  utility_hanging_adb:
+    steps:
+    - change-workdir:
+        title: Chnage workdir to ./_tmp
+        inputs:
+        - path: _tmp
+    - avd-manager:
+        title: Start Android Emulator
     - script:
         title: Create hanging adb
         inputs:
@@ -39,9 +67,9 @@ workflows:
             EOF
             chmod +x platform-tools/adb
     - path::./:
-        title: Should fail with timeout - Wait for the emulator to boot
+        title: Wait for the emulator to boot - should fail with timeout
         is_always_run: false
-        is_skippable: true
+        is_skippable: false
         inputs:
         - boot_timeout: 60
         - android_home: ./
@@ -56,6 +84,24 @@ workflows:
             [[ $(grep -c "kill-server" ./adb_log) == "3" ]] && 
              [[ $(grep -c -- '-s emulator-5554 shell getprop dev.bootcomplete' ./adb_log) == "3" ]] || 
              exit 1
+
+  daemon_restart:
+    steps:
+    - avd-manager:
+        title: Start Android Emulator
+    - script:
+        title: Stop Gradle daemon
+        inputs:
+        - content: |-
+            #!/bin/env bash
+            set -ex
+            $ANDROID_HOME/platform-tools/adb kill-server
+    - path::./:
+        title: Wait for the Emulator boot
+    - script:
+        title: Stop Android emulator
+        inputs:
+        - content: pkill -f qemu-system-i386
 
   # ----------------------------------------------------------------
   # --- Utility workflows
