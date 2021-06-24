@@ -23,3 +23,8 @@ workflows:
       - git::https://github.com/bitrise-steplib/steps-check.git:
           inputs:
             - workflow: e2e
+
+  test:
+    before_run:
+    - check
+    - e2e
