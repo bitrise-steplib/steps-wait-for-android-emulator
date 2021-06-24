@@ -1,0 +1,106 @@
+format_version: "11"
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+
+workflows:
+  test_smoke:
+    before_run:
+    - _start_emulator
+    steps:
+    - path::./:
+        title: Wait for the Emulator boot
+        is_always_run: false
+    after_run:
+    - _stop_emulators
+
+  test_hanging_adb:
+    steps:
+    - script:
+        title: Start a failing workflow, wrapped in a script
+        inputs:
+        - content: |-
+            #!/bin/env bash
+            set -x # Do not set -e as bitrise command is excepted to fail
+            bitrise run -c ./e2e/bitrise.yml utility_test_hanging_adb
+            if [ $? -ne 1 ] ; then
+              echo "Workflow was excepted to fail, but exit code is not 1"
+              exit 1
+            fi
+
+  utility_test_hanging_adb:
+    before_run:
+    - _start_emulator
+    steps:
+    - change-workdir:
+        title: Chnage workdir to ./_tmp
+        inputs:
+        - path: _tmp
+    - script:
+        title: Create hanging adb
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -e
+            mkdir -p platform-tools
+            cat /dev/null > adb_log
+            cat /dev/null > platform-tools/adb
+            cat >> platform-tools/adb <<'EOF'
+            #!/usr/bin/env bash
+
+            echo "$@" >> adb_log
+            [[ "$1" == "kill-server" ]] && exit 0
+            sleep 120
+            EOF
+            chmod +x platform-tools/adb
+    - path::./:
+        title: Wait for the emulator to boot - should fail with timeout
+        is_always_run: false
+        is_skippable: false
+        inputs:
+        - boot_timeout: 60
+        - android_home: ./
+    - script:
+        title: check if commands are called
+        is_always_run: false
+        is_skippable: false
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -ex
+            [[ $(grep -c "kill-server" ./adb_log) == "3" ]] && 
+             [[ $(grep -c -- '-s emulator-5554 shell getprop dev.bootcomplete' ./adb_log) == "3" ]] || 
+             exit 1
+    after_run:
+    - _stop_emulators
+
+  test_daemon_restart:
+    before_run:
+    - _start_emulator
+    steps:
+    - script:
+        title: Stop Gradle daemon
+        inputs:
+        - content: |-
+            #!/bin/env bash
+            set -ex
+            $ANDROID_HOME/platform-tools/adb kill-server
+    - path::./:
+        title: Wait for the Emulator boot
+    after_run:
+    - _stop_emulators
+
+  _stop_emulators:
+    steps:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/env bash
+            adb devices | grep emulator | cut -f1 | while read line; do adb -s $line emu kill; done
+
+  _start_emulator:
+    steps:
+    - avd-manager:
+        title: Start Android Emulator
+        inputs:
+        - tag: default
+        - abi: x86_64
+        - api_level: 29

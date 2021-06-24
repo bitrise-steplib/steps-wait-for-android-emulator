@@ -1,86 +1,30 @@
-format_version: 9
+format_version: "11"
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 
 workflows:
-  test:
-    before_run:
-    - audit-this-step
+  sample:
     steps:
-    - go-list:
-    - golint:
-    - errcheck:
-    - go-test:
-    - change-workdir:
-        inputs:
-        - path: _tmp
     - avd-manager:
+        title: Start Android Emulator
     - path::./:
-        title: Wait for the emulator to boot
+        title: Wait for the Emulator boot
         is_always_run: false
     - script:
         title: Stop Android Emulator
         inputs:
         - content: pkill -f qemu-system-i386
-    - script:
-        title: Create hanging adb
-        inputs:
-        - content: |-
-            #!/usr/bin/env bash
-            set -e
-            mkdir -p platform-tools
-            cat /dev/null > adb_log
-            cat /dev/null > platform-tools/adb
-            cat >> platform-tools/adb <<'EOF'
-            #!/usr/bin/env bash
 
-            echo "$@" >> adb_log
-            [[ "$1" == "kill-server" ]] && exit 0
-            sleep 120
-            EOF
-            chmod +x platform-tools/adb
-    - path::./:
-        title: Should fail with timeout - Wait for the emulator to boot
-        is_always_run: false
-        is_skippable: true
-        inputs:
-        - boot_timeout: 60
-        - android_home: ./
-    - script:
-        title: check if commands are called
-        is_always_run: false
-        is_skippable: false
-        inputs:
-        - content: |-
-            #!/usr/bin/env bash
-            set -ex
-            [[ $(grep -c "kill-server" ./adb_log) == "3" ]] && 
-             [[ $(grep -c -- '-s emulator-5554 shell getprop dev.bootcomplete' ./adb_log) == "3" ]] || 
-             exit 1
-
-  # ----------------------------------------------------------------
-  # --- Utility workflows
-  dep-update:
-    title: Dep update
-    description: |
-      Used for updating bitrise dependencies with dep
+  check:
     steps:
-    - script:
-        title: Dependency update
-        inputs:
-        - content: |-
-            #!/bin/bash
-            set -ex
-            go get -u -v github.com/golang/dep/cmd/dep
-            dep ensure -v
-            dep ensure -v -update
+    - git::https://github.com/bitrise-steplib/steps-check.git:
 
-  # ----------------------------------------------------------------
-  # --- workflows to Share this step into a Step Library
-  audit-this-step:
+  e2e:
     steps:
-    - script:
-        inputs:
-        - content: |-
-            #!/usr/bin/env bash
-            set -ex
-            stepman audit --step-yml ./step.yml
+      - git::https://github.com/bitrise-steplib/steps-check.git:
+          inputs:
+            - workflow: e2e
+
+  test:
+    before_run:
+    - check
+    - e2e

@@ -11,52 +11,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bitrise-io/go-android/adbmanager"
+	"github.com/bitrise-io/go-android/sdk"
+	"github.com/bitrise-io/go-steputils/stepconf"
 	"github.com/bitrise-io/go-utils/log"
-	"github.com/bitrise-tools/go-android/adbmanager"
-	"github.com/bitrise-tools/go-android/sdk"
 )
 
 var errTimedOut = errors.New("running command timed out")
 
-// ConfigsModel ...
-type ConfigsModel struct {
-	EmulatorSerial string
-	BootTimeout    string
-	AndroidHome    string
-}
-
-// -----------------------
-// --- Functions
-// -----------------------
-
-func createConfigsModelFromEnvs() ConfigsModel {
-	return ConfigsModel{
-		EmulatorSerial: os.Getenv("emulator_serial"),
-		BootTimeout:    os.Getenv("boot_timeout"),
-		AndroidHome:    os.Getenv("android_home"),
-	}
-}
-
-func (configs ConfigsModel) validate() error {
-	if configs.EmulatorSerial == "" {
-		return errors.New("no EmulatorSerial parameter specified")
-	}
-	if configs.AndroidHome == "" {
-		return errors.New("no AndroidHome parameter specified")
-	}
-	if configs.BootTimeout == "" {
-		return errors.New("no BootTimeout parameter specified")
-	}
-
-	return nil
-}
-
-func (configs ConfigsModel) print() {
-	log.Infof("Configs:")
-
-	log.Printf("- emulatorSerial: %s", configs.EmulatorSerial)
-	log.Printf("- bootTimeout: %s", configs.BootTimeout)
-	log.Printf("- AndroidHome: %s", configs.AndroidHome)
+// Inputs ...
+type Inputs struct {
+	EmulatorSerial string `env:"emulator_serial,required"`
+	BootTimeout    string `env:"boot_timeout,required"`
+	AndroidHome    string `env:"android_home,dir"`
 }
 
 func failf(format string, v ...interface{}) {
@@ -117,24 +84,18 @@ func isDeviceBooted(androidHome, serial string) (bool, error) {
 	return (dev == "1" && sys == "1" && init == "stopped"), nil
 }
 
-// -----------------------
-// --- Main
-// -----------------------
-
 func main() {
-	config := createConfigsModelFromEnvs()
-
-	fmt.Println()
-	config.print()
-
-	if err := config.validate(); err != nil {
-		failf("Issue with input: %s", err)
+	var inputs Inputs
+	if err := stepconf.Parse(&inputs); err != nil {
+		failf("Issue with inputs: %s", err)
 	}
+
+	stepconf.Print(inputs)
 
 	fmt.Println()
 	log.Infof("Waiting for emulator boot")
 
-	sdk, err := sdk.New(config.AndroidHome)
+	sdk, err := sdk.New(inputs.AndroidHome)
 	if err != nil {
 		failf("Failed to create sdk, error: %s", err)
 	}
@@ -144,7 +105,7 @@ func main() {
 		failf("Failed to create adb model, error: %s", err)
 	}
 
-	timeout, err := strconv.ParseInt(config.BootTimeout, 10, 64)
+	timeout, err := strconv.ParseInt(inputs.BootTimeout, 10, 64)
 	if err != nil {
 		failf("Failed to parse BootTimeout parameter, error: %s", err)
 	}
@@ -154,12 +115,16 @@ func main() {
 
 	for !emulatorBootDone {
 		log.Printf("> Checking if device booted...")
-		if emulatorBootDone, err = isDeviceBooted(config.AndroidHome, config.EmulatorSerial); err != nil {
-			if err != errTimedOut {
+		if emulatorBootDone, err = isDeviceBooted(inputs.AndroidHome, inputs.EmulatorSerial); err != nil {
+			if strings.Contains(err.Error(), "daemon not running; starting now at") {
+				log.Warnf("adb daemon being restarted")
+				log.Printf(err.Error())
+			} else if err != errTimedOut {
 				failf("Failed to check emulator boot status, error: %s", err)
 			}
+
 			log.Warnf("Running command timed out, retry...")
-			if err := killADBDaemon(config.AndroidHome); err != nil {
+			if err := killADBDaemon(inputs.AndroidHome); err != nil {
 				if err != errTimedOut {
 					failf("unable to kill ADB daemon, error: %s", err)
 				}
@@ -169,14 +134,14 @@ func main() {
 			break
 		}
 
-		if time.Now().Sub(startTime) >= time.Duration(timeout)*time.Second {
+		if time.Since(startTime) >= time.Duration(timeout)*time.Second {
 			failf("Waiting for emulator boot timed out after %d seconds", timeout)
 		}
 
 		time.Sleep(5 * time.Second)
 	}
 
-	if err := adb.UnlockDevice(config.EmulatorSerial); err != nil {
+	if err := adb.UnlockDevice(inputs.EmulatorSerial); err != nil {
 		failf("UnlockDevice command failed, error: %s", err)
 	}
 
