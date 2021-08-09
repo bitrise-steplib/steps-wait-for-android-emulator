@@ -115,22 +115,27 @@ func main() {
 
 	for !emulatorBootDone {
 		log.Printf("> Checking if device booted...")
-		if emulatorBootDone, err = isDeviceBooted(inputs.AndroidHome, inputs.EmulatorSerial); err != nil {
-			if strings.Contains(err.Error(), "daemon not running; starting now at") {
+
+		emulatorBootDone, err = isDeviceBooted(inputs.AndroidHome, inputs.EmulatorSerial)
+		if err != nil {
+			switch {
+			case strings.Contains(err.Error(), "daemon not running; starting now at"):
 				log.Warnf("adb daemon being restarted")
 				log.Printf(err.Error())
-			} else if err != errTimedOut {
+			case err == errTimedOut:
+				log.Warnf("Running command timed out, retry...")
+				if err := killADBDaemon(inputs.AndroidHome); err != nil {
+					if err != errTimedOut {
+						failf("unable to kill ADB daemon, error: %s", err)
+					}
+					log.Warnf("killing ADB daemon timed out")
+				}
+			case err != nil:
 				failf("Failed to check emulator boot status, error: %s", err)
 			}
+		}
 
-			log.Warnf("Running command timed out, retry...")
-			if err := killADBDaemon(inputs.AndroidHome); err != nil {
-				if err != errTimedOut {
-					failf("unable to kill ADB daemon, error: %s", err)
-				}
-				log.Warnf("killing ADB daemon timed out")
-			}
-		} else if emulatorBootDone {
+		if emulatorBootDone {
 			break
 		}
 
