@@ -8,12 +8,10 @@ import (
 	"time"
 )
 
-// DefaultCmdRunner ...
-type DefaultCmdRunner struct {
-}
+type defaultCmdRunner struct{}
 
 // RunCommandWithTimeout ...
-func (r DefaultCmdRunner) RunCommandWithTimeout(name string, args []string) (string, error) {
+func (r defaultCmdRunner) RunCommandWithTimeout(name string, args []string) (string, error) {
 	cmd := exec.Command(name, args...)
 
 	var output bytes.Buffer

@@ -19,7 +19,7 @@ type CmdRunner interface {
 	RunCommandWithTimeout(name string, args []string) (string, error)
 }
 
-var cmdRunner CmdRunner = DefaultCmdRunner{}
+var cmdRunner CmdRunner = defaultCmdRunner{}
 
 // Clock ...
 type Clock interface {
@@ -29,7 +29,7 @@ type Clock interface {
 	After(d time.Duration) <-chan time.Time
 }
 
-var clock Clock = DefaultClock{}
+var clock Clock = defaultClock{}
 
 var errTimedOut = errors.New("running command timed out")
 
