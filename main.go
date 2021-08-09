@@ -1,12 +1,9 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -16,6 +13,23 @@ import (
 	"github.com/bitrise-io/go-steputils/stepconf"
 	"github.com/bitrise-io/go-utils/log"
 )
+
+// CmdRunner ...
+type CmdRunner interface {
+	RunCommandWithTimeout(name string, args []string) (string, error)
+}
+
+var cmdRunner CmdRunner = DefaultCmdRunner{}
+
+// Clock ...
+type Clock interface {
+	Now() time.Time
+	Since(t time.Time) time.Duration
+	Sleep(d time.Duration)
+	After(d time.Duration) <-chan time.Time
+}
+
+var clock Clock = DefaultClock{}
 
 var errTimedOut = errors.New("running command timed out")
 
@@ -29,68 +43,6 @@ type Inputs struct {
 func failf(format string, v ...interface{}) {
 	log.Errorf(format, v...)
 	os.Exit(1)
-}
-
-// CmdRunner ...
-type CmdRunner interface {
-	RunCommandWithTimeout(name string, args []string) (string, error)
-}
-
-// DefaultCmdRunner ...
-type DefaultCmdRunner struct {
-}
-
-// RunCommandWithTimeout ...
-func (r DefaultCmdRunner) RunCommandWithTimeout(name string, args []string) (string, error) {
-	return runCommandWithTimeout(name, args)
-}
-
-var cmdRunner CmdRunner = DefaultCmdRunner{}
-
-func runCommandWithTimeout(name string, args []string) (string, error) {
-	cmd := exec.Command(name, args...)
-
-	var output bytes.Buffer
-	cmd.Stderr = &output
-	cmd.Stdout = &output
-
-	if err := cmd.Start(); err != nil {
-		return strings.TrimSpace(output.String()), err
-	}
-
-	done := make(chan error)
-
-	go func() { done <- cmd.Wait() }()
-	select {
-	case err := <-done:
-		return strings.TrimSpace(output.String()), err
-	case <-clock.After(20 * time.Second):
-		return strings.TrimSpace(output.String()), errTimedOut
-	}
-}
-
-func killADBDaemon(androidHome string) error {
-	name, args := adbCommand(androidHome, "", "kill-server")
-	_, err := cmdRunner.RunCommandWithTimeout(name, args)
-	return err
-}
-
-func adbCommand(androidHome, serial, cmd string) (string, []string) {
-	name := filepath.Join(androidHome, "platform-tools/adb")
-	args := []string{}
-	if serial != "" {
-		args = append(args, "-s", serial)
-	}
-	args = append(args, cmd)
-
-	return name, args
-}
-
-func adbShellCommand(androidHome, serial, shellCmd string) (string, []string) {
-	name, args := adbCommand(androidHome, serial, "shell")
-	args = append(args, shellCmd)
-
-	return name, args
 }
 
 func isDeviceBooted(androidHome, serial string) (bool, error) {
@@ -119,38 +71,11 @@ func isDeviceBooted(androidHome, serial string) (bool, error) {
 	return (dev == "1" && sys == "1" && init == "stopped"), nil
 }
 
-// Clock ...
-type Clock interface {
-	Now() time.Time
-	Since(t time.Time) time.Duration
-	Sleep(d time.Duration)
-	After(d time.Duration) <-chan time.Time
+func terminateADBServer(androidHome string) error {
+	name, args := adbCommand(androidHome, "", "kill-server")
+	_, err := cmdRunner.RunCommandWithTimeout(name, args)
+	return err
 }
-
-// DefaultClock ...
-type DefaultClock struct{}
-
-// Now ...
-func (c DefaultClock) Now() time.Time {
-	return time.Now()
-}
-
-// Since ...
-func (c DefaultClock) Since(t time.Time) time.Duration {
-	return time.Since(t)
-}
-
-// Sleep ...
-func (c DefaultClock) Sleep(d time.Duration) {
-	time.Sleep(d)
-}
-
-// After ...
-func (c DefaultClock) After(d time.Duration) <-chan time.Time {
-	return time.After(d)
-}
-
-var clock Clock = DefaultClock{}
 
 func checkEmulatorBootState(androidHome, emulatorSerial string, timeout time.Duration) error {
 	startTime := clock.Now()
@@ -166,7 +91,7 @@ func checkEmulatorBootState(androidHome, emulatorSerial string, timeout time.Dur
 				log.Printf(err.Error())
 			case err == errTimedOut:
 				log.Warnf("Running command timed out, retry...")
-				if err := killADBDaemon(androidHome); err != nil {
+				if err := terminateADBServer(androidHome); err != nil {
 					if err != errTimedOut {
 						return fmt.Errorf("unable to kill ADB daemon, error: %s", err)
 					}
