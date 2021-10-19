@@ -23,21 +23,21 @@ type MockClock struct {
 	mock.Mock
 }
 
-func (c MockClock) Now() time.Time {
+func (c *MockClock) Now() time.Time {
 	args := c.Called()
 	return args.Get(0).(time.Time)
 }
 
-func (c MockClock) Since(t time.Time) time.Duration {
+func (c *MockClock) Since(t time.Time) time.Duration {
 	args := c.Called(t)
 	return args.Get(0).(time.Duration)
 }
 
-func (c MockClock) Sleep(d time.Duration) {
+func (c *MockClock) Sleep(d time.Duration) {
 	c.Called(d)
 }
 
-func (c MockClock) After(d time.Duration) <-chan time.Time {
+func (c *MockClock) After(d time.Duration) <-chan time.Time {
 	args := c.Called(d)
 	return args.Get(0).(<-chan time.Time)
 }
