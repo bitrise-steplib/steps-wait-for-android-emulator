@@ -66,8 +66,8 @@ workflows:
         - content: |-
             #!/usr/bin/env bash
             set -ex
-            [[ $(grep -c "kill-server" ./adb_log) == "3" ]] && 
-             [[ $(grep -c -- '-s emulator-5554 shell getprop dev.bootcomplete' ./adb_log) == "3" ]] || 
+            [[ $(grep -c "kill-server" ./adb_log) == "3" ]] &&
+             [[ $(grep -c -- '-s emulator-5554 shell getprop dev.bootcomplete' ./adb_log) == "3" ]] ||
              exit 1
     after_run:
     - _stop_emulators
