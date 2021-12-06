@@ -45,6 +45,15 @@ func failf(format string, v ...interface{}) {
 	os.Exit(1)
 }
 
+func waitForDeviceStateAndBootComplete(androidHome, serial string) error {
+	shellCmd := `while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done;`
+	_, err := cmdRunner.RunCommandWithTimeout(adbWaitForDeviceShellCommand(androidHome, serial, shellCmd))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func isDeviceBooted(androidHome, serial string) (bool, error) {
 	formatErr := func(out string, err error) error {
 		if err == errTimedOut {
@@ -58,17 +67,12 @@ func isDeviceBooted(androidHome, serial string) (bool, error) {
 		return false, formatErr(dev, err)
 	}
 
-	sys, err := cmdRunner.RunCommandWithTimeout(adbShellCommand(androidHome, serial, "getprop sys.boot_completed"))
-	if err != nil {
-		return false, formatErr(sys, err)
-	}
-
 	init, err := cmdRunner.RunCommandWithTimeout(adbShellCommand(androidHome, serial, "getprop init.svc.bootanim"))
 	if err != nil {
 		return false, formatErr(init, err)
 	}
 
-	return (dev == "1" && sys == "1" && init == "stopped"), nil
+	return dev == "1" && init == "stopped", nil
 }
 
 func terminateADBServer(androidHome string) error {
@@ -77,29 +81,44 @@ func terminateADBServer(androidHome string) error {
 	return err
 }
 
+func handleDeviceBootStateError(err error, androidHome string) error {
+	if err == nil {
+		return nil
+	}
+
+	switch {
+	case strings.Contains(err.Error(), "daemon not running; starting now at"):
+		log.Warnf("adb daemon being restarted")
+		log.Printf(err.Error())
+		return nil
+	case err == errTimedOut:
+		log.Warnf("Running command timed out, retry...")
+		if err := terminateADBServer(androidHome); err != nil {
+			if err != errTimedOut {
+				return fmt.Errorf("unable to kill ADB daemon, error: %s", err)
+			}
+			log.Warnf("killing ADB daemon timed out")
+		}
+		return nil
+	}
+
+	return fmt.Errorf("failed to check emulator boot status, error: %s", err)
+}
+
 func checkEmulatorBootState(androidHome, emulatorSerial string, timeout time.Duration) error {
 	startTime := clock.Now()
 
 	for {
 		log.Printf("> Checking if device booted...")
 
+		err := waitForDeviceStateAndBootComplete(androidHome, emulatorSerial)
+		if err := handleDeviceBootStateError(err, androidHome); err != nil {
+			return err
+		}
+
 		booted, err := isDeviceBooted(androidHome, emulatorSerial)
-		if err != nil {
-			switch {
-			case strings.Contains(err.Error(), "daemon not running; starting now at"):
-				log.Warnf("adb daemon being restarted")
-				log.Printf(err.Error())
-			case err == errTimedOut:
-				log.Warnf("Running command timed out, retry...")
-				if err := terminateADBServer(androidHome); err != nil {
-					if err != errTimedOut {
-						return fmt.Errorf("unable to kill ADB daemon, error: %s", err)
-					}
-					log.Warnf("killing ADB daemon timed out")
-				}
-			case err != nil:
-				return fmt.Errorf("failed to check emulator boot status, error: %s", err)
-			}
+		if err := handleDeviceBootStateError(err, androidHome); err != nil {
+			return err
 		}
 
 		if booted {

@@ -33,13 +33,20 @@ func (r defaultCmdRunner) RunCommandWithTimeout(name string, args []string) (str
 	}
 }
 
-func adbCommand(androidHome, serial, cmd string) (string, []string) {
+func adbCommand(androidHome, serial string, args ...string) (string, []string) {
 	name := filepath.Join(androidHome, "platform-tools/adb")
-	args := []string{}
+	var cmd []string
 	if serial != "" {
-		args = append(args, "-s", serial)
+		cmd = append(cmd, "-s", serial)
 	}
-	args = append(args, cmd)
+	cmd = append(cmd, args...)
+
+	return name, cmd
+}
+
+func adbWaitForDeviceShellCommand(androidHome, serial, shellCmd string) (string, []string) {
+	name, args := adbCommand(androidHome, serial, "wait-for-device", "shell")
+	args = append(args, shellCmd)
 
 	return name, args
 }
