@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/bitrise-io/go-utils/log"
 )
 
 type defaultCmdRunner struct{}
@@ -22,13 +24,17 @@ func (r defaultCmdRunner) RunCommandWithTimeout(name string, args []string) (str
 		return strings.TrimSpace(output.String()), err
 	}
 
+	log.TPrintf("Started: %s", strings.Join(cmd.Args, " "))
+
 	done := make(chan error)
 
 	go func() { done <- cmd.Wait() }()
 	select {
 	case err := <-done:
+		log.TPrintf("Finished: %s", strings.TrimSpace(output.String()))
 		return strings.TrimSpace(output.String()), err
-	case <-clock.After(20 * time.Second):
+	case <-clock.After(60 * time.Second):
+		log.TPrintf("Finished: %s", strings.TrimSpace(output.String()))
 		return strings.TrimSpace(output.String()), errTimedOut
 	}
 }
