@@ -112,13 +112,19 @@ func checkEmulatorBootState(androidHome, emulatorSerial string, timeout time.Dur
 		log.Printf("> Checking if device booted...")
 
 		err := waitForDeviceStateAndBootComplete(androidHome, emulatorSerial)
-		if err := handleDeviceBootStateError(err, androidHome); err != nil {
-			return err
+		if err != nil {
+			if err := handleDeviceBootStateError(err, androidHome); err != nil {
+				return err
+			}
+			continue
 		}
 
 		booted, err := isDeviceBooted(androidHome, emulatorSerial)
-		if err := handleDeviceBootStateError(err, androidHome); err != nil {
-			return err
+		if err != nil {
+			if err := handleDeviceBootStateError(err, androidHome); err != nil {
+				return err
+			}
+			continue
 		}
 
 		if booted {
