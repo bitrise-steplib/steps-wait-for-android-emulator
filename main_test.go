@@ -49,8 +49,7 @@ func Test_checkEmulatorBootState_daemonRestart(t *testing.T) {
 
 	mockCmdRunner := new(MockCmdRunner)
 
-	name, args := adbWaitForDeviceShellCommand(androidHome, emulatorSerial, "while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done;")
-	mockCmdRunner.On("RunCommandWithTimeout", name, args).Return("1", nil).Once()
+	name, args := adbWaitForDeviceShellCommand(androidHome, emulatorSerial, "getprop sys.boot_completed")
 	mockCmdRunner.On("RunCommandWithTimeout", name, args).Return("1", nil).Once()
 
 	name, args = adbShellCommand(androidHome, emulatorSerial, "getprop dev.bootcomplete")
@@ -82,8 +81,7 @@ func Test_checkEmulatorBootState_timeout(t *testing.T) {
 
 	mockCmdRunner := new(MockCmdRunner)
 
-	name, args := adbWaitForDeviceShellCommand(androidHome, emulatorSerial, "while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done;")
-	mockCmdRunner.On("RunCommandWithTimeout", name, args).Return("1", nil).Once()
+	name, args := adbWaitForDeviceShellCommand(androidHome, emulatorSerial, "getprop sys.boot_completed")
 	mockCmdRunner.On("RunCommandWithTimeout", name, args).Return("1", nil).Once()
 
 	name, args = adbShellCommand(androidHome, emulatorSerial, "getprop dev.bootcomplete")

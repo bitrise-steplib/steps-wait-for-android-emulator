@@ -45,13 +45,12 @@ func failf(format string, v ...interface{}) {
 	os.Exit(1)
 }
 
-func waitForDeviceStateAndBootComplete(androidHome, serial string) error {
-	shellCmd := `while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done;`
-	_, err := cmdRunner.RunCommandWithTimeout(adbWaitForDeviceShellCommand(androidHome, serial, shellCmd))
+func waitForDeviceStateAndBootComplete(androidHome, serial string) (bool, error) {
+	out, err := cmdRunner.RunCommandWithTimeout(adbWaitForDeviceShellCommand(androidHome, serial, "getprop sys.boot_completed"))
 	if err != nil {
-		return err
+		return false, err
 	}
-	return nil
+	return out == "1", nil
 }
 
 func isDeviceBooted(androidHome, serial string) (bool, error) {
@@ -108,23 +107,29 @@ func handleDeviceBootStateError(err error, androidHome string) error {
 func checkEmulatorBootState(androidHome, emulatorSerial string, timeout time.Duration) error {
 	startTime := clock.Now()
 
-	for {
-		log.Printf("> Checking if device booted...")
+	log.Printf("Checking if device booted...")
 
-		err := waitForDeviceStateAndBootComplete(androidHome, emulatorSerial)
-		if err != nil {
-			if err := handleDeviceBootStateError(err, androidHome); err != nil {
-				return err
-			}
-			continue
+	for {
+		booted, err := waitForDeviceStateAndBootComplete(androidHome, emulatorSerial)
+		if err := handleDeviceBootStateError(err, androidHome); err != nil {
+			return err
 		}
 
+		if booted {
+			break
+		}
+
+		if clock.Since(startTime) >= timeout {
+			return fmt.Errorf("waiting for emulator boot timed out after %d seconds", timeout)
+		}
+
+		clock.Sleep(5 * time.Second)
+	}
+
+	for {
 		booted, err := isDeviceBooted(androidHome, emulatorSerial)
-		if err != nil {
-			if err := handleDeviceBootStateError(err, androidHome); err != nil {
-				return err
-			}
-			continue
+		if err := handleDeviceBootStateError(err, androidHome); err != nil {
+			return err
 		}
 
 		if booted {
