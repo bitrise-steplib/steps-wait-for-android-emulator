@@ -56,10 +56,3 @@ func adbWaitForDeviceShellCommand(androidHome, serial, shellCmd string) (string,
 
 	return name, args
 }
-
-func adbShellCommand(androidHome, serial, shellCmd string) (string, []string) {
-	name, args := adbCommand(androidHome, serial, "shell")
-	args = append(args, shellCmd)
-
-	return name, args
-}
