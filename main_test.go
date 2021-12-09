@@ -52,11 +52,11 @@ func Test_checkEmulatorBootState_daemonRestart(t *testing.T) {
 	name, args := adbWaitForDeviceShellCommand(androidHome, emulatorSerial, "getprop sys.boot_completed")
 	mockCmdRunner.On("RunCommandWithTimeout", name, args).Return("1", nil).Once()
 
-	name, args = adbShellCommand(androidHome, emulatorSerial, "getprop dev.bootcomplete")
+	name, args = adbWaitForDeviceShellCommand(androidHome, emulatorSerial, "getprop dev.bootcomplete")
 	mockCmdRunner.On("RunCommandWithTimeout", name, args).Return("daemon not running; starting now at tcp:5037", errors.New("exit status 1")).Once()
 	mockCmdRunner.On("RunCommandWithTimeout", name, args).Return("1", nil).Once()
 
-	name, args = adbShellCommand(androidHome, emulatorSerial, "getprop init.svc.bootanim")
+	name, args = adbWaitForDeviceShellCommand(androidHome, emulatorSerial, "getprop init.svc.bootanim")
 	mockCmdRunner.On("RunCommandWithTimeout", name, args).Return("stopped", nil).Once()
 
 	cmdRunner = mockCmdRunner
@@ -84,16 +84,16 @@ func Test_checkEmulatorBootState_timeout(t *testing.T) {
 	name, args := adbWaitForDeviceShellCommand(androidHome, emulatorSerial, "getprop sys.boot_completed")
 	mockCmdRunner.On("RunCommandWithTimeout", name, args).Return("1", nil).Once()
 
-	name, args = adbShellCommand(androidHome, emulatorSerial, "getprop dev.bootcomplete")
+	name, args = adbWaitForDeviceShellCommand(androidHome, emulatorSerial, "getprop dev.bootcomplete")
 	mockCmdRunner.On("RunCommandWithTimeout", name, args).Return("", errTimedOut).Once()
 
 	name, args = adbCommand(androidHome, "", "kill-server")
 	mockCmdRunner.On("RunCommandWithTimeout", name, args).Return("", nil).Once()
 
-	name, args = adbShellCommand(androidHome, emulatorSerial, "getprop dev.bootcomplete")
+	name, args = adbWaitForDeviceShellCommand(androidHome, emulatorSerial, "getprop dev.bootcomplete")
 	mockCmdRunner.On("RunCommandWithTimeout", name, args).Return("1", nil).Once()
 
-	name, args = adbShellCommand(androidHome, emulatorSerial, "getprop init.svc.bootanim")
+	name, args = adbWaitForDeviceShellCommand(androidHome, emulatorSerial, "getprop init.svc.bootanim")
 	mockCmdRunner.On("RunCommandWithTimeout", name, args).Return("stopped", nil).Once()
 
 	cmdRunner = mockCmdRunner
