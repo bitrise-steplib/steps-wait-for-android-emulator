@@ -98,7 +98,7 @@ workflows:
 
   _start_emulator:
     steps:
-    - avd-manager:
+    - git::https://github.com/bitrise-steplib/steps-avd-manager@MOB-268-hanging-sdkmanager:
         title: Start Android Emulator
         inputs:
         - tag: default
