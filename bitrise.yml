@@ -18,7 +18,7 @@ workflows:
 
   sample:
     steps:
-    - avd-manager:
+    - git::https://github.com/bitrise-steplib/steps-avd-manager@MOB-268-hanging-sdkmanager:
         title: Start Android Emulator
     - path::./:
         title: Wait for the Emulator boot
