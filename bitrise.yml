@@ -12,13 +12,13 @@ workflows:
 
   e2e:
     steps:
-    - git::https://github.com/bitrise-steplib/steps-check.git@secret-filtering:
+    - git::https://github.com/bitrise-steplib/steps-check.git:
         inputs:
         - workflow: e2e
 
   sample:
     steps:
-    - git::https://github.com/bitrise-steplib/steps-avd-manager@MOB-268-hanging-sdkmanager:
+    - avd-manager:
         title: Start Android Emulator
     - path::./:
         title: Wait for the Emulator boot

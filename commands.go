@@ -10,6 +10,8 @@ import (
 	"github.com/bitrise-io/go-utils/log"
 )
 
+const commandTimeout = 20 * time.Second
+
 type defaultCmdRunner struct{}
 
 // RunCommandWithTimeout ...
@@ -38,8 +40,8 @@ func (r defaultCmdRunner) RunCommandWithTimeout(name string, args []string) (str
 			log.TPrintf("Finished with output: %s", strings.TrimSpace(output.String()))
 		}
 		return strings.TrimSpace(output.String()), err
-	case <-clock.After(60 * time.Second):
-		log.TPrintf("Timeout out with output: %s", strings.TrimSpace(output.String()))
+	case <-clock.After(commandTimeout):
+		log.TPrintf("Timeout with output: %s", strings.TrimSpace(output.String()))
 		return strings.TrimSpace(output.String()), errTimedOut
 	}
 }

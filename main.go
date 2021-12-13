@@ -71,7 +71,6 @@ func handleDeviceBootStateError(err error, out, androidHome string) error {
 	switch {
 	case strings.Contains(err.Error(), "daemon not running; starting now at") || strings.Contains(out, "daemon not running; starting now at"):
 		log.Warnf("adb daemon being restarted")
-		log.Printf(err.Error())
 		return nil
 	case err == errTimedOut:
 		log.Warnf("Running command timed out, retry...")
