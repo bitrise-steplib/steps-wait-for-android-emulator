@@ -29,12 +29,17 @@ func (r defaultCmdRunner) RunCommandWithTimeout(name string, args []string) (str
 	done := make(chan error)
 
 	go func() { done <- cmd.Wait() }()
+
 	select {
 	case err := <-done:
-		log.TPrintf("Finished: %s", strings.TrimSpace(output.String()))
+		if err != nil {
+			log.TPrintf("Failed with output: %s, error: %s", strings.TrimSpace(output.String()), err)
+		} else {
+			log.TPrintf("Finished with output: %s", strings.TrimSpace(output.String()))
+		}
 		return strings.TrimSpace(output.String()), err
 	case <-clock.After(60 * time.Second):
-		log.TPrintf("Finished: %s", strings.TrimSpace(output.String()))
+		log.TPrintf("Timeout out with output: %s", strings.TrimSpace(output.String()))
 		return strings.TrimSpace(output.String()), errTimedOut
 	}
 }

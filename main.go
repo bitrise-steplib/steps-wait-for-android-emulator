@@ -45,35 +45,16 @@ func failf(format string, v ...interface{}) {
 	os.Exit(1)
 }
 
-func formatErr(out string, err error) error {
-	if err == errTimedOut {
-		return err
-	}
-	return fmt.Errorf("%s - %s", out, err)
+func waitForDeviceStateAndSYSBootComplete(androidHome, serial string) (string, error) {
+	return cmdRunner.RunCommandWithTimeout(adbWaitForDeviceShellCommand(androidHome, serial, "getprop sys.boot_completed"))
 }
 
-func waitForDeviceStateAndSYSBootComplete(androidHome, serial string) (bool, error) {
-	out, err := cmdRunner.RunCommandWithTimeout(adbWaitForDeviceShellCommand(androidHome, serial, "getprop sys.boot_completed"))
-	if err != nil {
-		return false, formatErr(out, err)
-	}
-	return out == "1", nil
+func waitForDeviceStateAndDEVBootComplete(androidHome, serial string) (string, error) {
+	return cmdRunner.RunCommandWithTimeout(adbWaitForDeviceShellCommand(androidHome, serial, "getprop dev.bootcomplete"))
 }
 
-func waitForDeviceStateAndDEVBootComplete(androidHome, serial string) (bool, error) {
-	out, err := cmdRunner.RunCommandWithTimeout(adbWaitForDeviceShellCommand(androidHome, serial, "getprop dev.bootcomplete"))
-	if err != nil {
-		return false, formatErr(out, err)
-	}
-	return out == "1", nil
-}
-
-func waitForDeviceStateAndSYSBootAnimComplete(androidHome, serial string) (bool, error) {
-	out, err := cmdRunner.RunCommandWithTimeout(adbWaitForDeviceShellCommand(androidHome, serial, "getprop init.svc.bootanim"))
-	if err != nil {
-		return false, formatErr(out, err)
-	}
-	return out == "stopped", nil
+func waitForDeviceStateAndSYSBootAnimComplete(androidHome, serial string) (string, error) {
+	return cmdRunner.RunCommandWithTimeout(adbWaitForDeviceShellCommand(androidHome, serial, "getprop init.svc.bootanim"))
 }
 
 func terminateADBServer(androidHome string) error {
@@ -82,13 +63,13 @@ func terminateADBServer(androidHome string) error {
 	return err
 }
 
-func handleDeviceBootStateError(err error, androidHome string) error {
+func handleDeviceBootStateError(err error, out, androidHome string) error {
 	if err == nil {
 		return nil
 	}
 
 	switch {
-	case strings.Contains(err.Error(), "daemon not running; starting now at"):
+	case strings.Contains(err.Error(), "daemon not running; starting now at") || strings.Contains(out, "daemon not running; starting now at"):
 		log.Warnf("adb daemon being restarted")
 		log.Printf(err.Error())
 		return nil
@@ -112,12 +93,12 @@ func checkEmulatorBootState(androidHome, emulatorSerial string, timeout time.Dur
 	log.Printf("Checking if device booted...")
 
 	for {
-		booted, err := waitForDeviceStateAndSYSBootComplete(androidHome, emulatorSerial)
-		if err := handleDeviceBootStateError(err, androidHome); err != nil {
+		out, err := waitForDeviceStateAndSYSBootComplete(androidHome, emulatorSerial)
+		if err := handleDeviceBootStateError(err, out, androidHome); err != nil {
 			return err
 		}
 
-		if booted {
+		if out == "1" {
 			break
 		}
 
@@ -129,12 +110,12 @@ func checkEmulatorBootState(androidHome, emulatorSerial string, timeout time.Dur
 	}
 
 	for {
-		booted, err := waitForDeviceStateAndDEVBootComplete(androidHome, emulatorSerial)
-		if err := handleDeviceBootStateError(err, androidHome); err != nil {
+		out, err := waitForDeviceStateAndDEVBootComplete(androidHome, emulatorSerial)
+		if err := handleDeviceBootStateError(err, out, androidHome); err != nil {
 			return err
 		}
 
-		if booted {
+		if out == "1" {
 			break
 		}
 
@@ -146,12 +127,12 @@ func checkEmulatorBootState(androidHome, emulatorSerial string, timeout time.Dur
 	}
 
 	for {
-		booted, err := waitForDeviceStateAndSYSBootAnimComplete(androidHome, emulatorSerial)
-		if err := handleDeviceBootStateError(err, androidHome); err != nil {
+		out, err := waitForDeviceStateAndSYSBootAnimComplete(androidHome, emulatorSerial)
+		if err := handleDeviceBootStateError(err, out, androidHome); err != nil {
 			return err
 		}
 
-		if booted {
+		if out == "stopped" {
 			break
 		}
 
