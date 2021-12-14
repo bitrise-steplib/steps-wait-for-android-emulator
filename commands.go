@@ -10,7 +10,7 @@ import (
 	"github.com/bitrise-io/go-utils/log"
 )
 
-const commandTimeout = 20 * time.Second
+const commandTimeout = 45 * time.Second
 
 type defaultCmdRunner struct{}
 
