@@ -98,7 +98,7 @@ workflows:
 
   _start_emulator:
     steps:
-    - git::https://github.com/bitrise-steplib/steps-avd-manager@MOB-268-hanging-sdkmanager:
+    - avd-manager:
         title: Start Android Emulator
         timeout: 300
         inputs:

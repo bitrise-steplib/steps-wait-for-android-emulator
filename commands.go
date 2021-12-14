@@ -34,15 +34,17 @@ func (r defaultCmdRunner) RunCommandWithTimeout(name string, args []string) (str
 
 	select {
 	case err := <-done:
+		out := strings.TrimSpace(output.String())
 		if err != nil {
-			log.TPrintf("Failed with output: %s, error: %s", strings.TrimSpace(output.String()), err)
+			log.TPrintf("Failed with output: %s, error: %s", out, err)
 		} else {
-			log.TPrintf("Finished with output: %s", strings.TrimSpace(output.String()))
+			log.TPrintf("Finished with output: %s", out)
 		}
-		return strings.TrimSpace(output.String()), err
+		return out, err
 	case <-clock.After(commandTimeout):
-		log.TPrintf("Timeout with output: %s", strings.TrimSpace(output.String()))
-		return strings.TrimSpace(output.String()), errTimedOut
+		out := strings.TrimSpace(output.String())
+		log.TPrintf("Timeout with output: %s", out)
+		return out, errTimedOut
 	}
 }
 
