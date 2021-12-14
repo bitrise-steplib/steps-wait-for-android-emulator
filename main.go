@@ -11,6 +11,8 @@ import (
 	"github.com/bitrise-io/go-android/adbmanager"
 	"github.com/bitrise-io/go-android/sdk"
 	"github.com/bitrise-io/go-steputils/stepconf"
+	"github.com/bitrise-io/go-utils/command"
+	"github.com/bitrise-io/go-utils/env"
 	"github.com/bitrise-io/go-utils/log"
 )
 
@@ -146,8 +148,10 @@ func checkEmulatorBootState(androidHome, emulatorSerial string, timeout time.Dur
 }
 
 func main() {
+	envRepo := env.NewRepository()
+
 	var inputs Inputs
-	if err := stepconf.Parse(&inputs); err != nil {
+	if err := stepconf.NewInputParser(envRepo).Parse(&inputs); err != nil {
 		failf("Issue with inputs: %s", err)
 	}
 
@@ -161,7 +165,7 @@ func main() {
 		failf("Failed to create sdk, error: %s", err)
 	}
 
-	adb, err := adbmanager.New(sdk)
+	adb, err := adbmanager.New(sdk, command.NewFactory(envRepo))
 	if err != nil {
 		failf("Failed to create adb model, error: %s", err)
 	}
