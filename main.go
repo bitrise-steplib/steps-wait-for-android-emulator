@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -16,20 +15,10 @@ import (
 	logv2 "github.com/bitrise-io/go-utils/v2/log"
 )
 
-// Clock ...
-type Clock interface {
-	Now() time.Time
-	Since(t time.Time) time.Duration
-	Sleep(d time.Duration)
-	After(d time.Duration) <-chan time.Time
-}
-
-var clock Clock = defaultClock{}
-
 // Inputs ...
 type Inputs struct {
 	EmulatorSerial string `env:"emulator_serial,required"`
-	BootTimeout    string `env:"boot_timeout,required"`
+	BootTimeout    int    `env:"boot_timeout,required"`
 
 	AndroidHome    string `env:"ANDROID_HOME"`
 	AndroidSDKRoot string `env:"ANDROID_SDK_ROOT"`
@@ -40,12 +29,14 @@ func failf(format string, v ...interface{}) {
 	os.Exit(1)
 }
 
-func checkEmulatorBootState(adbManager adbmanager.Manager, emulatorSerial string, timeout time.Duration) error {
-	startTime := clock.Now()
-
+func checkEmulatorBootState(adbManager adbmanager.Manager, serial string, deadline time.Time) error {
 	log.Printf("Checking if device booted...")
 
 	for {
+		if time.Now().After(deadline) {
+			return fmt.Errorf("emulator boot status checked timed out")
+		}
+
 		if err := adbManager.StartServer(); err != nil {
 			log.Warnf("failed to start adb server: %s", err)
 			log.Warnf("restarting adb server...")
@@ -54,7 +45,7 @@ func checkEmulatorBootState(adbManager adbmanager.Manager, emulatorSerial string
 			}
 		}
 
-		out, err := adbManager.WaitForDeviceShell(emulatorSerial, "getprop sys.boot_completed")
+		out, err := adbManager.WaitForDeviceShell(serial, "getprop sys.boot_completed")
 		fmt.Println(out)
 		if err != nil {
 			log.Warnf("failed to check emulator boot status: %s", err)
@@ -74,11 +65,38 @@ func checkEmulatorBootState(adbManager adbmanager.Manager, emulatorSerial string
 			}
 		}
 
-		if clock.Since(startTime) >= timeout {
-			return fmt.Errorf("emulator boot status checked timed out")
+		time.Sleep(2 * time.Second)
+	}
+}
+
+func unlockDevice(adbManager adbmanager.Manager, serial string, deadline time.Time) error {
+	for {
+		if time.Now().After(deadline) {
+			return fmt.Errorf("unlock emulator timed out")
 		}
 
-		clock.Sleep(2 * time.Second)
+		if err := adbManager.StartServer(); err != nil {
+			log.Warnf("failed to start adb server: %s", err)
+			log.Warnf("restarting adb server...")
+			if err := adbManager.RestartServer(); err != nil {
+				return fmt.Errorf("failed to start adb server: %s", err)
+			}
+		}
+
+		out, err := adbManager.UnlockDevice(serial)
+		fmt.Println(out)
+		if err != nil {
+			log.Warnf("failed to unlock emulator: %s", err)
+			log.Warnf("restarting adb server...")
+			if err := adbManager.KillServer(); err != nil {
+				return fmt.Errorf("failed to kill adb server: %s", err)
+			}
+
+			time.Sleep(2 * time.Second)
+			continue
+		}
+
+		return nil
 	}
 }
 
@@ -95,6 +113,7 @@ func main() {
 	fmt.Println()
 	log.Infof("Waiting for emulator boot")
 
+	// adb shell input help
 	// Initialize Android SDK
 	log.Printf("Initialize Android SDK")
 	androidSDK, err := sdk.NewDefaultModel(sdk.Environment{
@@ -105,22 +124,14 @@ func main() {
 		failf("Failed to initialize Android SDK: %s", err)
 	}
 
-	adb, err := adbmanager.New(androidSDK, command.NewFactory(envRepo))
-	if err != nil {
-		failf("Failed to create adb model, error: %s", err)
-	}
-
-	timeout, err := strconv.ParseInt(inputs.BootTimeout, 10, 64)
-	if err != nil {
-		failf("Failed to parse BootTimeout parameter, error: %s", err)
-	}
+	deadline := time.Now().Add(time.Duration(inputs.BootTimeout) * time.Second)
 
 	adbManager := adbmanager.NewManager(androidSDK, command.NewFactory(env.NewRepository()), logv2.NewLogger())
-	if err := checkEmulatorBootState(adbManager, inputs.EmulatorSerial, time.Duration(timeout)*time.Second); err != nil {
+	if err := checkEmulatorBootState(adbManager, inputs.EmulatorSerial, deadline); err != nil {
 		failf(err.Error())
 	}
 
-	if err := adb.UnlockDevice(inputs.EmulatorSerial); err != nil {
+	if err := unlockDevice(adbManager, inputs.EmulatorSerial, deadline); err != nil {
 		failf("UnlockDevice command failed, error: %s", err)
 	}
 

@@ -1,16 +1,13 @@
-# github.com/bitrise-io/go-android v0.0.0-20211215154647-9f25d25a2022
+# github.com/bitrise-io/go-android v0.0.0-20211215213618-d98e52f391f0
 ## explicit
 github.com/bitrise-io/go-android/adbmanager
 github.com/bitrise-io/go-android/sdk
-# github.com/bitrise-io/go-steputils v1.0.1
-## explicit
 # github.com/bitrise-io/go-steputils/v2 v2.0.0-alpha.1
 ## explicit
 github.com/bitrise-io/go-steputils/v2/stepconf
 # github.com/bitrise-io/go-utils v1.0.1
 ## explicit
 github.com/bitrise-io/go-utils/colorstring
-github.com/bitrise-io/go-utils/command
 github.com/bitrise-io/go-utils/log
 github.com/bitrise-io/go-utils/parseutil
 github.com/bitrise-io/go-utils/pathutil
@@ -20,18 +17,5 @@ github.com/bitrise-io/go-utils/pointers
 github.com/bitrise-io/go-utils/v2/command
 github.com/bitrise-io/go-utils/v2/env
 github.com/bitrise-io/go-utils/v2/log
-# github.com/davecgh/go-spew v1.1.1
-github.com/davecgh/go-spew/spew
 # github.com/hashicorp/go-version v1.3.0
 github.com/hashicorp/go-version
-# github.com/pmezard/go-difflib v1.0.0
-github.com/pmezard/go-difflib/difflib
-# github.com/stretchr/objx v0.3.0
-github.com/stretchr/objx
-# github.com/stretchr/testify v1.7.0
-## explicit
-github.com/stretchr/testify/assert
-github.com/stretchr/testify/mock
-github.com/stretchr/testify/require
-# gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
-gopkg.in/yaml.v3
