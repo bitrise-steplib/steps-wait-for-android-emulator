@@ -39,7 +39,7 @@ func waitForBootComplete(adbManager adbmanager.Manager, serial string) <-chan Wa
 	doneChan := make(chan WaitForBootCompleteResult)
 
 	go func() {
-		const hangTimeout = 30 * time.Second
+		const hangTimeout = 1 * time.Minute
 		time.AfterFunc(hangTimeout, func() {
 			doneChan <- WaitForBootCompleteResult{Error: errors.New("timeout")}
 		})
