@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -29,6 +30,43 @@ func failf(format string, v ...interface{}) {
 	os.Exit(1)
 }
 
+type WaitForBootCompleteResult struct {
+	Booted bool
+	Error  error
+}
+
+func waitForBootComplete(adbManager adbmanager.Manager, serial string) <-chan WaitForBootCompleteResult {
+	doneChan := make(chan WaitForBootCompleteResult)
+
+	go func() {
+		const hangTimeout = 30 * time.Second
+		time.AfterFunc(hangTimeout, func() {
+			doneChan <- WaitForBootCompleteResult{Error: errors.New("timeout")}
+		})
+	}()
+
+	go func() {
+		out, err := adbManager.WaitForDeviceShell(serial, "getprop sys.boot_completed")
+		fmt.Println(out)
+		if err != nil {
+			doneChan <- WaitForBootCompleteResult{Error: err}
+			return
+		}
+
+		lines := strings.Split(out, "\n")
+		for _, line := range lines {
+			if strings.TrimSpace(line) == "1" {
+				doneChan <- WaitForBootCompleteResult{Booted: true}
+				return
+			}
+		}
+
+		doneChan <- WaitForBootCompleteResult{Booted: false}
+	}()
+
+	return doneChan
+}
+
 func checkEmulatorBootState(adbManager adbmanager.Manager, serial string, deadline time.Time) error {
 	log.Printf("Checking if device booted...")
 
@@ -45,24 +83,17 @@ func checkEmulatorBootState(adbManager adbmanager.Manager, serial string, deadli
 			}
 		}
 
-		out, err := adbManager.WaitForDeviceShell(serial, "getprop sys.boot_completed")
-		fmt.Println(out)
-		if err != nil {
-			log.Warnf("failed to check emulator boot status: %s", err)
+		doneChan := waitForBootComplete(adbManager, serial)
+		res := <-doneChan
+		switch {
+		case res.Error != nil:
+			log.Warnf("failed to check emulator boot status: %s", res.Error)
 			log.Warnf("restarting adb server...")
 			if err := adbManager.KillServer(); err != nil {
 				return fmt.Errorf("failed to kill adb server: %s", err)
 			}
-
-			time.Sleep(2 * time.Second)
-			continue
-		}
-
-		lines := strings.Split(out, "\n")
-		for _, line := range lines {
-			if strings.TrimSpace(line) == "1" {
-				return nil
-			}
+		case res.Booted:
+			return nil
 		}
 
 		time.Sleep(2 * time.Second)
