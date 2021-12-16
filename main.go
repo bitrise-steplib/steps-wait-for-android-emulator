@@ -144,7 +144,6 @@ func main() {
 	fmt.Println()
 	log.Infof("Waiting for emulator boot")
 
-	// adb shell input help
 	// Initialize Android SDK
 	log.Printf("Initialize Android SDK")
 	androidSDK, err := sdk.NewDefaultModel(sdk.Environment{
