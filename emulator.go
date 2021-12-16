@@ -16,8 +16,6 @@ type waitForBootCompleteResult struct {
 }
 
 func WaitForBootComplete(adbManager adbmanager.Manager, serial string, deadline time.Time) error {
-	log.Printf("Checking if device booted...")
-
 	const sleepTime = 5 * time.Second
 
 	for {

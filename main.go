@@ -39,10 +39,7 @@ func main() {
 	stepconf.Print(inputs)
 
 	fmt.Println()
-	log.Infof("Waiting for emulator boot")
-
-	// Initialize Android SDK
-	log.Printf("Initialize Android SDK")
+	log.Infof("Initialize Android SDK")
 	androidSDK, err := sdk.NewDefaultModel(sdk.Environment{
 		AndroidHome:    inputs.AndroidHome,
 		AndroidSDKRoot: inputs.AndroidSDKRoot,
@@ -50,17 +47,23 @@ func main() {
 	if err != nil {
 		failf("Failed to initialize Android SDK: %s", err)
 	}
+	log.Donef("Android SDK path: %s", androidSDK.AndroidHome())
 
+	fmt.Println()
+	log.Infof("Waiting for emulator boot")
 	deadline := time.Now().Add(time.Duration(inputs.BootTimeout) * time.Second)
-
 	adbManager := adbmanager.NewManager(androidSDK, command.NewFactory(env.NewRepository()), logv2.NewLogger())
 	if err := WaitForBootComplete(adbManager, inputs.EmulatorSerial, deadline); err != nil {
-		failf(err.Error())
+		failf("Waiting for emulator boot failed: %s", err)
 	}
 
+	fmt.Println()
+	log.Infof("Unlock emulator")
+	time.Sleep(2 * time.Second)
 	if err := UnlockDevice(adbManager, inputs.EmulatorSerial, deadline); err != nil {
-		failf("UnlockDevice command failed, error: %s", err)
+		failf("Unlock emulator failed: %s", err)
 	}
 
-	log.Donef("> Device booted")
+	fmt.Println()
+	log.Donef("Emulator is ready to use")
 }
