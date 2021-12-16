@@ -1,10 +1,8 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/bitrise-io/go-android/adbmanager"
@@ -28,107 +26,6 @@ type Inputs struct {
 func failf(format string, v ...interface{}) {
 	log.Errorf(format, v...)
 	os.Exit(1)
-}
-
-type WaitForBootCompleteResult struct {
-	Booted bool
-	Error  error
-}
-
-func waitForBootComplete(adbManager adbmanager.Manager, serial string) <-chan WaitForBootCompleteResult {
-	doneChan := make(chan WaitForBootCompleteResult)
-
-	go func() {
-		const hangTimeout = 1 * time.Minute
-		time.AfterFunc(hangTimeout, func() {
-			doneChan <- WaitForBootCompleteResult{Error: errors.New("timeout")}
-		})
-	}()
-
-	go func() {
-		out, err := adbManager.WaitForDeviceShell(serial, "getprop sys.boot_completed")
-		fmt.Println(out)
-		if err != nil {
-			doneChan <- WaitForBootCompleteResult{Error: err}
-			return
-		}
-
-		lines := strings.Split(out, "\n")
-		for _, line := range lines {
-			if strings.TrimSpace(line) == "1" {
-				doneChan <- WaitForBootCompleteResult{Booted: true}
-				return
-			}
-		}
-
-		doneChan <- WaitForBootCompleteResult{Booted: false}
-	}()
-
-	return doneChan
-}
-
-func checkEmulatorBootState(adbManager adbmanager.Manager, serial string, deadline time.Time) error {
-	log.Printf("Checking if device booted...")
-
-	for {
-		if time.Now().After(deadline) {
-			return fmt.Errorf("emulator boot status check timed out")
-		}
-
-		if err := adbManager.StartServer(); err != nil {
-			log.Warnf("failed to start adb server: %s", err)
-			log.Warnf("restarting adb server...")
-			if err := adbManager.RestartServer(); err != nil {
-				return fmt.Errorf("failed to restart adb server: %s", err)
-			}
-		}
-
-		doneChan := waitForBootComplete(adbManager, serial)
-		res := <-doneChan
-		switch {
-		case res.Error != nil:
-			log.Warnf("failed to check emulator boot status: %s", res.Error)
-			log.Warnf("terminating adb server...")
-			if err := adbManager.KillServer(); err != nil {
-				return fmt.Errorf("failed to terminate adb server: %s", err)
-			}
-		case res.Booted:
-			return nil
-		}
-
-		time.Sleep(2 * time.Second)
-	}
-}
-
-func unlockDevice(adbManager adbmanager.Manager, serial string, deadline time.Time) error {
-	for {
-		if time.Now().After(deadline) {
-			return fmt.Errorf("unlock emulator timed out")
-		}
-
-		if err := adbManager.StartServer(); err != nil {
-			log.Warnf("failed to start adb server: %s", err)
-			log.Warnf("restarting adb server...")
-			if err := adbManager.RestartServer(); err != nil {
-				return fmt.Errorf("failed to restart adb server: %s", err)
-			}
-		}
-
-		out, err := adbManager.UnlockDevice(serial)
-		fmt.Println(out)
-		if err != nil {
-			log.Warnf("failed to unlock emulator: %s", err)
-			log.Warnf("terminating adb server...")
-			if err := adbManager.KillServer(); err != nil {
-				return fmt.Errorf("failed to terminate adb server: %s", err)
-			}
-
-			time.Sleep(2 * time.Second)
-			continue
-		}
-
-		return nil
-	}
 }
 
 func main() {
@@ -157,11 +54,11 @@ func main() {
 	deadline := time.Now().Add(time.Duration(inputs.BootTimeout) * time.Second)
 
 	adbManager := adbmanager.NewManager(androidSDK, command.NewFactory(env.NewRepository()), logv2.NewLogger())
-	if err := checkEmulatorBootState(adbManager, inputs.EmulatorSerial, deadline); err != nil {
+	if err := WaitForBootComplete(adbManager, inputs.EmulatorSerial, deadline); err != nil {
 		failf(err.Error())
 	}
 
-	if err := unlockDevice(adbManager, inputs.EmulatorSerial, deadline); err != nil {
+	if err := UnlockDevice(adbManager, inputs.EmulatorSerial, deadline); err != nil {
 		failf("UnlockDevice command failed, error: %s", err)
 	}
 
