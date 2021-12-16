@@ -32,8 +32,3 @@ inputs:
     description: |
       Maximum time to wait for emulator to boot.
     is_required: true
-- android_home: $ANDROID_SDK_ROOT
-  opts:
-    title: Android sdk path
-    description: Android sdk path
-    is_required: true
