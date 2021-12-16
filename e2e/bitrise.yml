@@ -100,7 +100,6 @@ workflows:
     steps:
     - avd-manager:
         title: Start Android Emulator
-        timeout: 300
         inputs:
         - tag: default
         - abi: x86_64
