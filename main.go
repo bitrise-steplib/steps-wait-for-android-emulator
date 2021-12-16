@@ -72,14 +72,14 @@ func checkEmulatorBootState(adbManager adbmanager.Manager, serial string, deadli
 
 	for {
 		if time.Now().After(deadline) {
-			return fmt.Errorf("emulator boot status checked timed out")
+			return fmt.Errorf("emulator boot status check timed out")
 		}
 
 		if err := adbManager.StartServer(); err != nil {
 			log.Warnf("failed to start adb server: %s", err)
 			log.Warnf("restarting adb server...")
 			if err := adbManager.RestartServer(); err != nil {
-				return fmt.Errorf("failed to start adb server: %s", err)
+				return fmt.Errorf("failed to restart adb server: %s", err)
 			}
 		}
 
@@ -88,9 +88,9 @@ func checkEmulatorBootState(adbManager adbmanager.Manager, serial string, deadli
 		switch {
 		case res.Error != nil:
 			log.Warnf("failed to check emulator boot status: %s", res.Error)
-			log.Warnf("restarting adb server...")
+			log.Warnf("terminating adb server...")
 			if err := adbManager.KillServer(); err != nil {
-				return fmt.Errorf("failed to kill adb server: %s", err)
+				return fmt.Errorf("failed to terminate adb server: %s", err)
 			}
 		case res.Booted:
 			return nil
@@ -110,7 +110,7 @@ func unlockDevice(adbManager adbmanager.Manager, serial string, deadline time.Ti
 			log.Warnf("failed to start adb server: %s", err)
 			log.Warnf("restarting adb server...")
 			if err := adbManager.RestartServer(); err != nil {
-				return fmt.Errorf("failed to start adb server: %s", err)
+				return fmt.Errorf("failed to restart adb server: %s", err)
 			}
 		}
 
@@ -118,9 +118,9 @@ func unlockDevice(adbManager adbmanager.Manager, serial string, deadline time.Ti
 		fmt.Println(out)
 		if err != nil {
 			log.Warnf("failed to unlock emulator: %s", err)
-			log.Warnf("restarting adb server...")
+			log.Warnf("terminating adb server...")
 			if err := adbManager.KillServer(); err != nil {
-				return fmt.Errorf("failed to kill adb server: %s", err)
+				return fmt.Errorf("failed to terminate adb server: %s", err)
 			}
 
 			time.Sleep(2 * time.Second)
