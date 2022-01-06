@@ -4,6 +4,7 @@ default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 workflows:
   test_smoke:
     before_run:
+    - _install_custom_cli
     - _start_emulator
     steps:
     - path::./:
@@ -28,6 +29,7 @@ workflows:
 
   utility_test_hanging_adb:
     before_run:
+    - _install_custom_cli
     - _start_emulator
     steps:
     - change-workdir:
@@ -74,6 +76,7 @@ workflows:
 
   test_daemon_restart:
     before_run:
+    - _install_custom_cli
     - _start_emulator
     steps:
     - script:
@@ -104,3 +107,23 @@ workflows:
         - tag: default
         - abi: x86_64
         - api_level: 29
+
+  _install_custom_cli:
+    steps:
+    - script@1:
+        title: Install custom CLI build
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -ex
+
+            go install github.com/bitrise-io/bitrise@04d8af7a5acb17105032fb79d67ae4eea3d83fd7
+            cp $GOPATH/bin/bitrise $(which bitrise)
+    - script@1:
+        title: Print new CLI version
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -ex
+
+            bitrise -v
