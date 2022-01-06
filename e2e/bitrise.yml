@@ -117,8 +117,11 @@ workflows:
             #!/usr/bin/env bash
             set -ex
 
+            pth=$(which bitrise)
             go install github.com/bitrise-io/bitrise@04d8af7a5acb17105032fb79d67ae4eea3d83fd7
-            cp $GOPATH/bin/bitrise $(which bitrise)
+            if [[ ! $GOPATH/bin/bitrise -ef $pth ]] ; then
+              cp $GOPATH/bin/bitrise $pth
+            fi
     - script@1:
         title: Print new CLI version
         inputs:
