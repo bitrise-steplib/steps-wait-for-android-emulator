@@ -118,7 +118,7 @@ workflows:
             set -ex
 
             pth=$(which bitrise)
-            go install github.com/bitrise-io/bitrise@04d8af7a5acb17105032fb79d67ae4eea3d83fd7
+            go install github.com/bitrise-io/bitrise@4753a0e35597acc54c5e3514dbf022075f1b4a5a
             if [[ ! $GOPATH/bin/bitrise -ef $pth ]] ; then
               mv $GOPATH/bin/bitrise $pth
             fi
