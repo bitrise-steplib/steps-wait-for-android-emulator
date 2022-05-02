@@ -2,7 +2,7 @@ title: Wait for Android emulator
 summary: Wait for the emulator to finish boot
 description: |-
   If your Workflow contains the [AVD Manager](https://www.bitrise.io/integrations/steps/avd-manager) Step,
-  use this Step to check if the android emulator is booted or wait for it to finish booting.
+  you can use this Step to check if the android emulator is booted or wait for it to finish booting.
 
   ### Configuring the Step
 
