@@ -2,10 +2,10 @@
 ## explicit
 github.com/bitrise-io/go-android/adbmanager
 github.com/bitrise-io/go-android/sdk
-# github.com/bitrise-io/go-steputils v1.0.1
+# github.com/bitrise-io/go-steputils v1.0.2
 ## explicit
 github.com/bitrise-io/go-steputils/stepconf
-# github.com/bitrise-io/go-utils v1.0.1
+# github.com/bitrise-io/go-utils v1.0.2
 ## explicit
 github.com/bitrise-io/go-utils/colorstring
 github.com/bitrise-io/go-utils/command
@@ -15,7 +15,8 @@ github.com/bitrise-io/go-utils/pathutil
 github.com/bitrise-io/go-utils/pointers
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/hashicorp/go-version v1.3.0
+# github.com/hashicorp/go-version v1.5.0
+## explicit
 github.com/hashicorp/go-version
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
