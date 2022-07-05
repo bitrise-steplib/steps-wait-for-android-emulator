@@ -95,10 +95,6 @@ func waitForDevice(adb *adbmanager.Model, emulatorSerial string, timeout time.Du
 	startTime := clock.Now()
 
 	for {
-		if time.Now().After(startTime.Add(timeout)) {
-			return fmt.Errorf("emulator boot check timed out")
-		}
-
 		logger.Printf("Waiting for emulator boot...")
 
 		bootCompleteChan := getBootCompleteEvent(adb, emulatorSerial, timeout)
@@ -111,11 +107,17 @@ func waitForDevice(adb *adbmanager.Model, emulatorSerial string, timeout time.Du
 			//	return fmt.Errorf("failed to terminate adb server: %s", err)
 			//}
 		case result.Booted:
+			logger.Donef("Device boot completed in %d seconds", time.Now().Sub(startTime)/time.Second)
 			return nil
 		}
 
-		logger.Printf("Device is online, but not booted yet, retrying in %d seconds", timeout/time.Second)
-		time.Sleep(5 * time.Second)
+		if time.Now().After(startTime.Add(timeout)) {
+			return fmt.Errorf("emulator boot check timed out")
+		}
+
+		delay := 5 * time.Second
+		logger.Printf("Device is online but still booting, retrying in %d seconds", delay/time.Second)
+		time.Sleep(delay)
 	}
 }
 
@@ -127,7 +129,6 @@ func main() {
 	if err := stepconf.NewInputParser(envRepo).Parse(&inputs); err != nil {
 		failf("Issue with inputs: %s", err)
 	}
-
 	stepconf.Print(inputs)
 
 	fmt.Println()
@@ -144,16 +145,18 @@ func main() {
 
 	timeout, err := strconv.ParseInt(inputs.BootTimeout, 10, 64)
 	if err != nil {
-		failf("Failed to parse BootTimeout parameter: %s", err)
+		failf("Failed to parse boot_timeout parameter: %s", err)
 	}
 
 	if err := waitForDevice(adb, inputs.EmulatorSerial, time.Duration(timeout)*time.Second); err != nil {
 		failf(err.Error())
 	}
 
+	logger.Println()
+	logger.Printf("Unlocking device...")
 	if err := adb.UnlockDevice(inputs.EmulatorSerial); err != nil {
 		failf("UnlockDevice command failed: %s", err)
 	}
 
-	logger.Donef("Device booted")
+	logger.Donef("Device is ready")
 }
