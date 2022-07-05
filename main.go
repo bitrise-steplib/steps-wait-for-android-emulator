@@ -17,11 +17,11 @@ import (
 )
 
 // CmdRunner ...
-type CmdRunner interface {
-	RunCommandWithTimeout(name string, args []string) (string, error)
-}
+//type CmdRunner interface {
+//	RunCommandWithTimeout(name string, args []string) (string, error)
+//}
 
-var cmdRunner CmdRunner = defaultCmdRunner{}
+//var cmdRunner CmdRunner = defaultCmdRunner{}
 
 // Clock ...
 type Clock interface {
@@ -49,37 +49,11 @@ func failf(format string, v ...interface{}) {
 	os.Exit(1)
 }
 
-func isDeviceBooted(androidHome, serial string) (bool, error) {
-	formatErr := func(out string, err error) error {
-		if err == errTimedOut {
-			return err
-		}
-		return fmt.Errorf("%s - %s", out, err)
-	}
-
-	dev, err := cmdRunner.RunCommandWithTimeout(adbShellCommand(androidHome, serial, "getprop dev.bootcomplete"))
-	if err != nil {
-		return false, formatErr(dev, err)
-	}
-
-	sys, err := cmdRunner.RunCommandWithTimeout(adbShellCommand(androidHome, serial, "getprop sys.boot_completed"))
-	if err != nil {
-		return false, formatErr(sys, err)
-	}
-
-	init, err := cmdRunner.RunCommandWithTimeout(adbShellCommand(androidHome, serial, "getprop init.svc.bootanim"))
-	if err != nil {
-		return false, formatErr(init, err)
-	}
-
-	return dev == "1" && sys == "1" && init == "stopped", nil
-}
-
-func terminateADBServer(androidHome string) error {
-	name, args := adbCommand(androidHome, "", "kill-server")
-	_, err := cmdRunner.RunCommandWithTimeout(name, args)
-	return err
-}
+//func terminateADBServer(androidHome string) error {
+//	name, args := adbCommand(androidHome, "", "kill-server")
+//	_, err := cmdRunner.RunCommandWithTimeout(name, args)
+//	return err
+//}
 
 type WaitForBootCompleteResult struct {
 	Booted bool
