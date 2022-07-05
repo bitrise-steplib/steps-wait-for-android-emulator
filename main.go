@@ -107,7 +107,7 @@ func waitForDevice(adb *adbmanager.Model, emulatorSerial string, timeout time.Du
 			//	return fmt.Errorf("failed to terminate adb server: %s", err)
 			//}
 		case result.Booted:
-			logger.Donef("Device boot completed in %d seconds", time.Now().Sub(startTime)/time.Second)
+			logger.Donef("Device boot completed in %d seconds", time.Since(startTime)/time.Second)
 			return nil
 		}
 
