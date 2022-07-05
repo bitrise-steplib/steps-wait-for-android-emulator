@@ -16,13 +16,6 @@ import (
 	"github.com/bitrise-io/go-utils/v2/log"
 )
 
-// CmdRunner ...
-//type CmdRunner interface {
-//	RunCommandWithTimeout(name string, args []string) (string, error)
-//}
-
-//var cmdRunner CmdRunner = defaultCmdRunner{}
-
 // Clock ...
 type Clock interface {
 	Now() time.Time
@@ -32,9 +25,6 @@ type Clock interface {
 }
 
 var clock Clock = defaultClock{}
-
-//var errTimedOut = errors.New("running command timed out")
-
 var logger = log.NewLogger()
 
 // Inputs ...
@@ -48,12 +38,6 @@ func failf(format string, v ...interface{}) {
 	logger.Errorf(format, v...)
 	os.Exit(1)
 }
-
-//func terminateADBServer(androidHome string) error {
-//	name, args := adbCommand(androidHome, "", "kill-server")
-//	_, err := cmdRunner.RunCommandWithTimeout(name, args)
-//	return err
-//}
 
 type WaitForBootCompleteResult struct {
 	Booted bool
@@ -70,7 +54,7 @@ func getBootCompleteEvent(adbManager *adbmanager.Model, serial string, timeout t
 	}()
 
 	go func() {
-		out, err := adbManager.WaitForDeviceThenShellCmd(serial, "getprop sys.boot_completed").RunAndReturnTrimmedCombinedOutput()
+		out, err := adbManager.WaitForDeviceThenShellCmd(serial, nil, "getprop sys.boot_completed").RunAndReturnTrimmedCombinedOutput()
 		if err != nil {
 			fmt.Println(out)
 			doneChan <- WaitForBootCompleteResult{Error: err}
@@ -101,18 +85,18 @@ func waitForDevice(adb *adbmanager.Model, emulatorSerial string, timeout time.Du
 		result := <-bootCompleteChan
 		switch {
 		case result.Error != nil:
-			logger.Warnf("failed to check emulator boot status: %s", result.Error)
-			//logger.Warnf("terminating ADB server...")
-			//if err := terminateADBServer(); err != nil {
-			//	return fmt.Errorf("failed to terminate adb server: %s", err)
-			//}
+			logger.Warnf("Failed to check emulator boot status: %s", result.Error)
+			logger.Warnf("Killing ADB server before retry...")
+			if err := adb.KillServerCmd(nil).Run(); err != nil {
+				return fmt.Errorf("failed to terminate adb server: %s", err)
+			}
 		case result.Booted:
 			logger.Donef("Device boot completed in %d seconds", time.Since(startTime)/time.Second)
 			return nil
 		}
 
 		if time.Now().After(startTime.Add(timeout)) {
-			return fmt.Errorf("emulator boot check timed out")
+			return fmt.Errorf("emulator boot check timed out after %s seconds", time.Since(startTime)/time.Second)
 		}
 
 		delay := 5 * time.Second
