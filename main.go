@@ -8,10 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bitrise-io/go-android/adbmanager"
-	"github.com/bitrise-io/go-android/sdk"
-	"github.com/bitrise-io/go-steputils/stepconf"
-	"github.com/bitrise-io/go-utils/log"
+	"github.com/bitrise-io/go-android/v2/adbmanager"
+	"github.com/bitrise-io/go-android/v2/sdk"
+	"github.com/bitrise-io/go-steputils/v2/stepconf"
+	"github.com/bitrise-io/go-utils/v2/command"
+	"github.com/bitrise-io/go-utils/v2/env"
+	"github.com/bitrise-io/go-utils/v2/log"
 )
 
 // CmdRunner ...
@@ -33,6 +35,8 @@ var clock Clock = defaultClock{}
 
 var errTimedOut = errors.New("running command timed out")
 
+var logger = log.NewLogger()
+
 // Inputs ...
 type Inputs struct {
 	EmulatorSerial string `env:"emulator_serial,required"`
@@ -41,7 +45,7 @@ type Inputs struct {
 }
 
 func failf(format string, v ...interface{}) {
-	log.Errorf(format, v...)
+	logger.Errorf(format, v...)
 	os.Exit(1)
 }
 
@@ -68,7 +72,7 @@ func isDeviceBooted(androidHome, serial string) (bool, error) {
 		return false, formatErr(init, err)
 	}
 
-	return (dev == "1" && sys == "1" && init == "stopped"), nil
+	return dev == "1" && sys == "1" && init == "stopped", nil
 }
 
 func terminateADBServer(androidHome string) error {
@@ -81,24 +85,24 @@ func checkEmulatorBootState(androidHome, emulatorSerial string, timeout time.Dur
 	startTime := clock.Now()
 
 	for {
-		log.Printf("> Checking if device booted...")
+		logger.Printf("> Checking if boot completed...")
 
 		booted, err := isDeviceBooted(androidHome, emulatorSerial)
 		if err != nil {
 			switch {
 			case strings.Contains(err.Error(), "daemon not running; starting now at"):
-				log.Warnf("adb daemon being restarted")
-				log.Printf(err.Error())
+				logger.Warnf("adb daemon being restarted")
+				logger.Printf(err.Error())
 			case err == errTimedOut:
-				log.Warnf("Running command timed out, retry...")
+				logger.Warnf("Running command timed out, retry...")
 				if err := terminateADBServer(androidHome); err != nil {
 					if err != errTimedOut {
 						return fmt.Errorf("unable to kill ADB daemon, error: %s", err)
 					}
-					log.Warnf("killing ADB daemon timed out")
+					logger.Warnf("killing ADB daemon timed out")
 				}
 			case err != nil:
-				return fmt.Errorf("failed to check emulator boot status, error: %s", err)
+				return fmt.Errorf("failed to check emulator boot status: %s", err)
 			}
 		}
 
@@ -117,29 +121,32 @@ func checkEmulatorBootState(androidHome, emulatorSerial string, timeout time.Dur
 }
 
 func main() {
+	envRepo := env.NewRepository()
+	cmdFactory := command.NewFactory(env.NewRepository())
+
 	var inputs Inputs
-	if err := stepconf.Parse(&inputs); err != nil {
+	if err := stepconf.NewInputParser(envRepo).Parse(&inputs); err != nil {
 		failf("Issue with inputs: %s", err)
 	}
 
 	stepconf.Print(inputs)
 
 	fmt.Println()
-	log.Infof("Waiting for emulator boot")
+	logger.Infof("Waiting for emulator to boot...")
 
-	sdk, err := sdk.New(inputs.AndroidHome)
+	androidSdk, err := sdk.New(inputs.AndroidHome)
 	if err != nil {
-		failf("Failed to create sdk, error: %s", err)
+		failf("Failed to create Android SDK: %s", err)
 	}
 
-	adb, err := adbmanager.New(sdk)
+	adb, err := adbmanager.New(androidSdk, cmdFactory)
 	if err != nil {
-		failf("Failed to create adb model, error: %s", err)
+		failf("Failed to create ADB model: %s", err)
 	}
 
 	timeout, err := strconv.ParseInt(inputs.BootTimeout, 10, 64)
 	if err != nil {
-		failf("Failed to parse BootTimeout parameter, error: %s", err)
+		failf("Failed to parse BootTimeout parameter: %s", err)
 	}
 
 	if err := checkEmulatorBootState(inputs.AndroidHome, inputs.EmulatorSerial, time.Duration(timeout)*time.Second); err != nil {
@@ -147,8 +154,8 @@ func main() {
 	}
 
 	if err := adb.UnlockDevice(inputs.EmulatorSerial); err != nil {
-		failf("UnlockDevice command failed, error: %s", err)
+		failf("UnlockDevice command failed: %s", err)
 	}
 
-	log.Donef("> Device booted")
+	logger.Donef("> Device booted")
 }
