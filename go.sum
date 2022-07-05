@@ -1,5 +1,7 @@
 github.com/bitrise-io/go-android/v2 v2.0.0-alpha.2 h1:crWiRTrKS+/zJT6GxBXn4koUvYBKpFgOK1g2xqsHagc=
 github.com/bitrise-io/go-android/v2 v2.0.0-alpha.2/go.mod h1:pkrTuGB9KAgVTWsMJ8UjqKjSInaNcdp8En9Fxqg2krc=
+github.com/bitrise-io/go-android/v2 v2.0.0-alpha.2.0.20220705110622-9e06b826cd37 h1:R1LJADwG/560lbP/WfkqSUTPWPIzRNxUrj1VDlwzEUk=
+github.com/bitrise-io/go-android/v2 v2.0.0-alpha.2.0.20220705110622-9e06b826cd37/go.mod h1:pkrTuGB9KAgVTWsMJ8UjqKjSInaNcdp8En9Fxqg2krc=
 github.com/bitrise-io/go-steputils v1.0.1/go.mod h1:YIUaQnIAyK4pCvQG0hYHVkSzKNT9uL2FWmkFNW4mfNI=
 github.com/bitrise-io/go-steputils v1.0.2 h1:BEFG87r7uA/Yabk4SmuxP2yOgjjO+YGsDOYXtUH8IJ0=
 github.com/bitrise-io/go-steputils v1.0.2/go.mod h1:YIUaQnIAyK4pCvQG0hYHVkSzKNT9uL2FWmkFNW4mfNI=
