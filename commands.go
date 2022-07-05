@@ -1,6 +1,6 @@
 package main
 
-type defaultCmdRunner struct{}
+//type defaultCmdRunner struct{}
 
 // RunCommandWithTimeout ...
 //func (r defaultCmdRunner) RunCommandWithTimeout(name string, args []string) (string, error) {

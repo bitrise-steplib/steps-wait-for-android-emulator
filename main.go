@@ -33,7 +33,7 @@ type Clock interface {
 
 var clock Clock = defaultClock{}
 
-var errTimedOut = errors.New("running command timed out")
+//var errTimedOut = errors.New("running command timed out")
 
 var logger = log.NewLogger()
 
