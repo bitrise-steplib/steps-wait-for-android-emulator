@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -30,7 +29,7 @@ var logger = log.NewLogger()
 // Inputs ...
 type Inputs struct {
 	EmulatorSerial string `env:"emulator_serial,required"`
-	BootTimeout    string `env:"boot_timeout,required"`
+	BootTimeout    int    `env:"boot_timeout,required"`
 	AndroidHome    string `env:"android_home,dir"`
 }
 
@@ -54,8 +53,10 @@ func getBootCompleteEvent(adbManager *adbmanager.Model, serial string, timeout t
 	}()
 
 	go func() {
-		out, err := adbManager.WaitForDeviceThenShellCmd(serial, nil, "getprop sys.boot_completed").RunAndReturnTrimmedCombinedOutput()
+		cmd := adbManager.WaitForDeviceThenShellCmd(serial, nil, "getprop sys.boot_completed")
+		out, err := cmd.RunAndReturnTrimmedCombinedOutput()
 		if err != nil {
+			fmt.Println(cmd.PrintableCommandArgs())
 			fmt.Println(out)
 			doneChan <- WaitForBootCompleteResult{Error: err}
 			return
@@ -87,8 +88,9 @@ func waitForDevice(adb *adbmanager.Model, emulatorSerial string, timeout time.Du
 		case result.Error != nil:
 			logger.Warnf("Failed to check emulator boot status: %s", result.Error)
 			logger.Warnf("Killing ADB server before retry...")
-			if err := adb.KillServerCmd(nil).Run(); err != nil {
-				return fmt.Errorf("failed to terminate adb server: %s", err)
+			killCmd := adb.KillServerCmd(nil)
+			if out, err := killCmd.RunAndReturnTrimmedCombinedOutput(); err != nil {
+				return fmt.Errorf("failed to terminate adb server: %s", out)
 			}
 		case result.Booted:
 			logger.Donef("Device boot completed in %d seconds", time.Since(startTime)/time.Second)
@@ -127,12 +129,7 @@ func main() {
 		failf("Failed to create ADB model: %s", err)
 	}
 
-	timeout, err := strconv.ParseInt(inputs.BootTimeout, 10, 64)
-	if err != nil {
-		failf("Failed to parse boot_timeout parameter: %s", err)
-	}
-
-	if err := waitForDevice(adb, inputs.EmulatorSerial, time.Duration(timeout)*time.Second); err != nil {
+	if err := waitForDevice(adb, inputs.EmulatorSerial, time.Duration(inputs.BootTimeout)*time.Second); err != nil {
 		failf(err.Error())
 	}
 
