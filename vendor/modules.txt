@@ -1,4 +1,4 @@
-# github.com/bitrise-io/go-android/v2 v2.0.0-alpha.2
+# github.com/bitrise-io/go-android/v2 v2.0.0-alpha.3
 ## explicit
 github.com/bitrise-io/go-android/v2/adbmanager
 github.com/bitrise-io/go-android/v2/sdk
@@ -28,6 +28,5 @@ github.com/stretchr/objx
 ## explicit
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/mock
-github.com/stretchr/testify/require
 # gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 gopkg.in/yaml.v3
