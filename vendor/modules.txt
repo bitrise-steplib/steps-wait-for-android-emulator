@@ -1,4 +1,4 @@
-# github.com/bitrise-io/go-android/v2 v2.0.0-alpha.2.0.20220705134521-eb6c4f958d71
+# github.com/bitrise-io/go-android/v2 v2.0.0-alpha.3
 ## explicit
 github.com/bitrise-io/go-android/v2/adbmanager
 github.com/bitrise-io/go-android/v2/sdk
