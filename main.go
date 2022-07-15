@@ -13,6 +13,7 @@ import (
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/env"
 	"github.com/bitrise-io/go-utils/v2/log"
+	"github.com/bitrise-io/go-utils/v2/system"
 )
 
 // Clock ...
@@ -35,6 +36,14 @@ type Inputs struct {
 
 func failf(format string, v ...interface{}) {
 	logger.Errorf(format, v...)
+
+	cpuIsARM, err := system.CPU.IsARM()
+	if err != nil {
+		logger.Errorf("Failed to check CPU: %s", err)
+	} else if cpuIsARM {
+		logger.Warnf("This Step is not yet supported on Apple Silicon (M1) machines. If you cannot find a solution to this error, try running this Workflow on an Intel-based machine type.")
+	}
+
 	os.Exit(1)
 }
 
