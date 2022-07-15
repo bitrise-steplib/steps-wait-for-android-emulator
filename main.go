@@ -117,6 +117,7 @@ func waitForDevice(adb *adbmanager.Model, emulatorSerial string, timeout time.Du
 }
 
 func main() {
+	failf("This Step should fail instantly, and display an extra error message if it is run on Apple Silicon, but not if run on Intel.")
 	envRepo := env.NewRepository()
 	cmdFactory := command.NewFactory(env.NewRepository())
 
