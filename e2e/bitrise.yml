@@ -56,7 +56,7 @@ workflows:
         is_always_run: false
         is_skippable: false
         inputs:
-        - boot_timeout: 60
+        - boot_timeout: 600
         - android_home: ./
     - script:
         title: check if commands are called
