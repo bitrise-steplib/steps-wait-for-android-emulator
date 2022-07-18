@@ -10,11 +10,12 @@ github.com/bitrise-io/go-utils/colorstring
 github.com/bitrise-io/go-utils/parseutil
 github.com/bitrise-io/go-utils/pathutil
 github.com/bitrise-io/go-utils/pointers
-# github.com/bitrise-io/go-utils/v2 v2.0.0-alpha.7
+# github.com/bitrise-io/go-utils/v2 v2.0.0-alpha.8
 ## explicit
 github.com/bitrise-io/go-utils/v2/command
 github.com/bitrise-io/go-utils/v2/env
 github.com/bitrise-io/go-utils/v2/log
+github.com/bitrise-io/go-utils/v2/system
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
 # github.com/hashicorp/go-version v1.6.0
@@ -28,5 +29,8 @@ github.com/stretchr/objx
 ## explicit
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/mock
+# golang.org/x/sys v0.0.0-20220712014510-0a85c31ab51e
+golang.org/x/sys/internal/unsafeheader
+golang.org/x/sys/unix
 # gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 gopkg.in/yaml.v3
