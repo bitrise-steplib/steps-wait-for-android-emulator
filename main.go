@@ -41,7 +41,7 @@ func failf(format string, v ...interface{}) {
 	if err != nil {
 		logger.Errorf("Failed to check CPU: %s", err)
 	} else if cpuIsARM {
-		logger.Warnf("This Step is not yet supported on Apple Silicon (M1) machines. If you cannot find a solution to this error, try running this Workflow on an Intel-based machine type.")
+		logger.Warnf("Android emulator is not supported on Apple Silicon (M1) build VMs. Try running this workflow on a Linux-based stack or use the Virtual Device Testing step. Learn more:\n* Set a workflow-specific stack: https://devcenter.bitrise.io/en/builds/configuring-build-settings/setting-the-stack-for-your-builds.html#setting-a-workflow-specific-stack-on-the-stacks---machines-tab\n * Virtual device testing step: https://github.com/bitrise-steplib/steps-virtual-device-testing-for-android")
 	}
 
 	os.Exit(1)
